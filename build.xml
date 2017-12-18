@@ -104,9 +104,13 @@
 			alias="${alias}"
 			keystore="${keystore}"
 			storepass="${password}"
-			tsaurl="http://timestamp.entrust.net/TSS/JavaHttpTS"
+			tsaurl="http://zeitstempel.dfn.de"
 			preservelastmodified="true">
 			<sysproperty key="https.protocols" value="TLSv1,TLSv1.1,TLSv1.2"/>
+			<sysproperty key="https.proxyHost" value="ukd-proxy"/>
+			<sysproperty key="http.proxyHost" value="ukd-proxy"/>
+			<sysproperty key="https.proxyPort" value="8080"/>
+			<sysproperty key="http.proxyPort" value="80"/>
 			<path>
 				<fileset dir="${products}" includes="*.jar" />
 			</path>
