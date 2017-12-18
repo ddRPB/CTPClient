@@ -32,6 +32,10 @@ public class FileName implements Comparable<FileName> {
 	StatusText statusText = null;
 	String description = "";
 
+	String studyDescription = "";
+	String seriesDescription = "";
+
+
 	public FileName(File file) {
 		this.file = file;
 		cb = new FileCheckBox();
@@ -52,12 +56,18 @@ public class FileName implements Comparable<FileName> {
 			seriesNumberInt = StringUtil.getInt(seriesNumber);
 			acquisitionNumberInt = StringUtil.getInt(acquisitionNumber);
 			instanceNumberInt = StringUtil.getInt(instanceNumber);
-			if (isImage) {
+
+			studyDescription = fixNull(dob.getStudyDescription());
+			seriesDescription = fixNull(dob.getSeriesDescription());
+
+		/*	if (isImage) {
+				description += "image";
 				description += getText("Series:", seriesNumber, " ");
 				description += getText("Acquisition:", acquisitionNumber, " ");
 				description += getText("Image:", instanceNumber, "");
 			}
 			else description += fixNull(dob.getSOPClassName());
+		*/
 		}
 		catch (Exception nonDICOM) { }
 	}
@@ -89,6 +99,12 @@ public class FileName implements Comparable<FileName> {
 	public String getModality() {
 		return modality;
 	}
+
+	public String getStudyDescription(){
+		return studyDescription;
+	}
+
+	public String getSeriesDescription() { return seriesDescription; }
 
 	private String fixDate(String s) {
 		if (s == null) s = "";
@@ -153,12 +169,18 @@ public class FileName implements Comparable<FileName> {
 		JPanel panel = new JPanel();
 		panel.setLayout(new RowLayout(0, 0));
 		panel.setBackground(Color.white);
-		JLabel name = new JLabel(file.getName());
+		JLabel name = new JLabel(seriesDescription + " - " + file.getName());
 		name.setFont( new Font( "Monospaced", Font.PLAIN, 12 ) );
 		name.setForeground( Color.BLACK );
 		panel.add(name);
 		panel.add(RowLayout.crlf());
 		panel.add(new JLabel(description));
+		panel.add(RowLayout.crlf());
+
+		panel.add(new JLabel("seriesDesc: " + seriesDescription));
+		panel.add(RowLayout.crlf());
+
+		panel.add(new JLabel("modality: " + modality));
 		panel.add(RowLayout.crlf());
 
 		dp.add(cb);

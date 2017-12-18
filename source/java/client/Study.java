@@ -110,9 +110,15 @@ public class Study implements ActionListener, Comparable<Study> {
 	}
 
 	public FileName[] getFileNames() {
+
+		//Java 8 is needed
+		Comparator<FileName> FileNameComparator
+				= Comparator.comparing(FileName::getSeriesDescription);
+
 		FileName[] names = new FileName[list.size()];
 		names = list.toArray(names);
-		Arrays.sort(names);
+		//Arrays.sort(names);
+		Arrays.sort(names, FileNameComparator);
 		return names;
 	}
 

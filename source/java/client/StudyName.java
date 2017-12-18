@@ -18,7 +18,8 @@ public class StudyName extends JButton {
 		String name = fileName.getPatientName()
 				+ " [" + fileName.getPatientID() + "] "
 				+ fileName.getStudyDate()
-				+ " " + fileName.getModality();
+				//+ " " + fileName.getModality();
+				+ " " + fileName.getStudyDescription();
 		setText(name);
 		setFont( new Font( "Monospaced", Font.BOLD, 16 ) );
 		setForeground( Color.blue );

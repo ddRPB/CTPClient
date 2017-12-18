@@ -31,7 +31,7 @@ import org.w3c.dom.Document;
 
 public class CTPClient extends JFrame implements ActionListener, ComponentListener {
 
-    static final String title = "CTP Client";
+    static final String title = "CTP Client - DKTK";
 	static final Color bgColor = new Color(0xc6d8f9);
 
     JScrollPane sp;
@@ -318,7 +318,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		//and display the frame
 		instructionsFrame.setText(getInstructions());
 		instructionsFrame.attachTo(this);
-		instructionsFrame.setVisible(true);
+		instructionsFrame.setVisible(false);
 		this.requestFocus();
 		addComponentListener(this);
 	}
