@@ -14,9 +14,9 @@
 	<property name="zip" value="${basedir}/zip"/>
 
 	<property name="signed" value="${basedir}/signed"/>
-	<property name="keystore" value="${files}/keystore"/>
-	<property name="password" value="ctpstore"/>
-	<property name="alias" value="ctp"/>
+	<property name="keystore" value="\\g40labsrv\edv\Wissenschaftsprojekte\RadPlanBio\jar-signing\ddrpb.jks"/>
+	<property name="password" value="RadPlanBio_2013"/>
+	<property name="alias" value="ddrpb"/>
 
 	<path id="classpath">
 		<pathelement location="${libraries}/util.jar"/>
@@ -112,7 +112,7 @@
 			<sysproperty key="https.proxyPort" value="8080"/>
 			<sysproperty key="http.proxyPort" value="80"/>
 			<path>
-				<fileset dir="${products}" includes="*.jar" />
+				<fileset dir="${products}" includes="CTPClient.jar" />
 			</path>
 			<flattenmapper />
 		</signjar>
