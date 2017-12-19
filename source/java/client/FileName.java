@@ -35,7 +35,6 @@ public class FileName implements Comparable<FileName> {
 	String studyDescription = "";
 	String seriesDescription = "";
 
-
 	public FileName(File file) {
 		this.file = file;
 		cb = new FileCheckBox();
@@ -169,15 +168,12 @@ public class FileName implements Comparable<FileName> {
 		JPanel panel = new JPanel();
 		panel.setLayout(new RowLayout(0, 0));
 		panel.setBackground(Color.white);
-		JLabel name = new JLabel(seriesDescription + " - " + file.getName());
+		JLabel name = new JLabel(file.getName());
 		name.setFont( new Font( "Monospaced", Font.PLAIN, 12 ) );
 		name.setForeground( Color.BLACK );
 		panel.add(name);
 		panel.add(RowLayout.crlf());
 		panel.add(new JLabel(description));
-		panel.add(RowLayout.crlf());
-
-		panel.add(new JLabel("seriesDesc: " + seriesDescription));
 		panel.add(RowLayout.crlf());
 
 		panel.add(new JLabel("modality: " + modality));

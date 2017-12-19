@@ -15,8 +15,7 @@ public class SeriesName extends JButton {
 
     public SeriesName(FileName fileName) {
         super();
-        String name = fileName.getPatientName()
-                + " " + fileName.getSeriesDescription();
+        String name = fileName.getSeriesDescription();
         setText(name);
         setFont( new Font( "Monospaced", Font.BOLD, 14 ) );
         setForeground( Color.blue );

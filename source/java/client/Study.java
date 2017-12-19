@@ -17,6 +17,9 @@ import org.rsna.ui.RowLayout;
 public class Study implements ActionListener, Comparable<Study> {
 
 	LinkedList<FileName> list = null;
+	LinkedList<SeriesName> seriesNameList = null;
+	LinkedList<Series> seriesList = null;
+	Hashtable<String, Series> seriesTable;
 	StudyCheckBox cb = null;
 	StudyName studyName = null;
 	String patientName = null;
@@ -24,6 +27,7 @@ public class Study implements ActionListener, Comparable<Study> {
 
 	public Study(FileName fileName) {
 		list = new LinkedList<FileName>();
+		seriesTable = new Hashtable<String, Series>();
 		cb = new StudyCheckBox();
 		cb.addActionListener(this);
 		patientName = fileName.getPatientName();
@@ -91,6 +95,10 @@ public class Study implements ActionListener, Comparable<Study> {
 			fn.setSelected(true);
 			if (dp != null) dp.setRowVisible(fn.getCheckBox(), true);
 		}
+		Set<String> keys = seriesTable.keySet();
+		for (String key : keys) {
+			seriesTable.get(key).setSelected(true);
+		}
 	}
 
 	public void deselectAll() {
@@ -98,6 +106,10 @@ public class Study implements ActionListener, Comparable<Study> {
 		for (FileName fn : list) {
 			fn.setSelected(false);
 			if (dp != null) dp.setRowVisible(fn.getCheckBox(), false);
+		}
+		Set<String> keys = seriesTable.keySet();
+		for (String key : keys) {
+			seriesTable.get(key).setSelected(false);
 		}
 	}
 
@@ -122,13 +134,34 @@ public class Study implements ActionListener, Comparable<Study> {
 		return names;
 	}
 
+	//devides the files into series
+	public void addSeries() {
+		for (final FileName name : list) {
+			String seriesDesc = name.getSeriesDescription();
+			if(!seriesTable.containsKey(seriesDesc)){
+				Series series = new Series(name);
+				seriesTable.put(seriesDesc, series);
+			}
+			else {
+				Series s = seriesTable.get(seriesDesc);
+				s.add(name);
+			}
+		}
+	}
+
 	public void display(DirectoryPanel dp) {
 		cb.setStudy(this);
 		dp.add(cb);
 		dp.add(studyName, RowLayout.span(4));
 		dp.add(RowLayout.crlf());
-		for (FileName fn : getFileNames()) {
+/*		for (FileName fn : getFileNames()) {
 			fn.display(dp);
+		}*/
+
+		addSeries();
+		Set<String> keys = seriesTable.keySet();
+		for (String key : keys) {
+			seriesTable.get(key).display(dp);
 		}
 	}
 
