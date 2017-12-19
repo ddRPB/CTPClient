@@ -40,6 +40,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     DialogPanel dialog = null;
     volatile boolean sending = false;
 
+	JCheckBox chkFiles = null;
+
     InputText httpURLField = null;
     FieldButton browseButton = null;
     FieldButton scpButton = null;
@@ -185,6 +187,10 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		browseButton.setEnabled(true);
 		browseButton.addActionListener(this);
 
+		chkFiles = new JCheckBox("show Dicom Files");
+		chkFiles.setEnabled(true);
+		chkFiles.setBackground(bgColor);
+
 		scpButton = new FieldButton("Open DICOM Storage");
 		scpButton.setEnabled( (scpPort > 0) );
 		scpButton.addActionListener(this);
@@ -288,9 +294,10 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		instructionsButton = new FieldButton("Instructions");
 		instructionsButton.addActionListener(this);
 		status.addRightComponent(instructionsButton);
+		status.addRightComponent(chkFiles);
 		panel.add(status, BorderLayout.SOUTH);
 
-        //Catch close requests and check before closing if we are busy sending
+		//Catch close requests and check before closing if we are busy sending
         addWindowListener(new WindowCloser(this));
 
         pack();
@@ -334,7 +341,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				setWaitCursor(true);
 				dp.clear();
 				dp.setDeleteOnSuccess(false);
-				studyList = new StudyList(dir, radioMode, anio);
+				studyList = new StudyList(dir, radioMode, anio, chkFiles.isSelected());
 				studyList.display(dp);
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);
@@ -348,7 +355,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				setWaitCursor(true);
 				dp.clear();
 				dp.setDeleteOnSuccess(true);
-				studyList = new StudyList(scpDirectory, radioMode, anio);
+				studyList = new StudyList(scpDirectory, radioMode,
+						anio, chkFiles.isSelected());
 				studyList.display(dp);
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);

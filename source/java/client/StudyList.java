@@ -19,14 +19,17 @@ public class StudyList implements ActionListener {
 	File directory = null;
 	boolean radioMode = false;
 	boolean anio = false;
+	boolean showDicomFiles = false;
 
 	FileFilter filesOnlyFilter = new FilesOnlyFilter();
 	FileFilter directoriesOnlyFilter = new DirectoriesOnlyFilter();
 
-	public StudyList(File directory, boolean radioMode, boolean acceptNonImageObjects) {
+	public StudyList(File directory, boolean radioMode,
+					 boolean acceptNonImageObjects, boolean showDicomFiles) {
 		this.directory = directory;
 		this.radioMode = radioMode;
 		this.anio = acceptNonImageObjects;
+		this.showDicomFiles = showDicomFiles;
 		table = new Hashtable<String,Study>();
 		addFiles(directory);
 		StatusPane.getInstance().setText("Directory: "+directory);
@@ -72,6 +75,7 @@ public class StudyList implements ActionListener {
 				if (study == null) {
 					study = new Study(fileName);
 					study.getCheckBox().addActionListener(this);
+					study.showDicomFiles(showDicomFiles);
 					table.put(siuid, study);
 				}
 				else study.add(fileName);

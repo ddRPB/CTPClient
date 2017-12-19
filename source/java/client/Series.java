@@ -20,6 +20,7 @@ public class Series implements ActionListener, Comparable<Series> {
     SeriesCheckBox cb = null;
     SeriesName seriesName = null;
     String patientName = null;
+    boolean showDicomFiles = false;
 
     public Series(FileName fileName) {
         list = new LinkedList<FileName>();
@@ -67,6 +68,10 @@ public class Series implements ActionListener, Comparable<Series> {
 
     public boolean isSelected() { return cb.isSelected(); }
 
+    public void showDicomFiles(boolean s) {
+        showDicomFiles = s;
+    }
+
     public void setSelected(boolean selected) {
         cb.setSelected(selected);
         if(selected) selectAll();
@@ -98,25 +103,21 @@ public class Series implements ActionListener, Comparable<Series> {
     }
 
     public FileName[] getFileNames() {
-
-        //Java 8 is needed
-        Comparator<FileName> FileNameComparator
-                = Comparator.comparing(FileName::getSeriesDescription);
-
         FileName[] names = new FileName[list.size()];
         names = list.toArray(names);
-        //Arrays.sort(names);
-        Arrays.sort(names, FileNameComparator);
+        Arrays.sort(names);
         return names;
     }
 
     public void display(DirectoryPanel dp) {
-//        dp.add(Box.createHorizontalStrut(1));
+        cb.setSeries(this);
         dp.add(cb);
         dp.add(seriesName, RowLayout.span(4));
         dp.add(RowLayout.crlf());
-        for (FileName fn : getFileNames()) {
-            fn.display(dp);
+        if(showDicomFiles) {
+            for (FileName fn : getFileNames()) {
+                fn.display(dp);
+            }
         }
     }
 }

@@ -24,6 +24,7 @@ public class Study implements ActionListener, Comparable<Study> {
 	StudyName studyName = null;
 	String patientName = null;
 	String studyDate = null;
+	boolean showDicomFiles = false;
 
 	public Study(FileName fileName) {
 		list = new LinkedList<FileName>();
@@ -113,6 +114,10 @@ public class Study implements ActionListener, Comparable<Study> {
 		}
 	}
 
+	public void showDicomFiles(boolean s) {
+		showDicomFiles = s;
+	}
+
 	private DirectoryPanel getDirectoryPanel() {
 		Component container = cb.getParent();
 		if ((container != null) && (container instanceof DirectoryPanel)) {
@@ -122,24 +127,18 @@ public class Study implements ActionListener, Comparable<Study> {
 	}
 
 	public FileName[] getFileNames() {
-
-		//Java 8 is needed
-		Comparator<FileName> FileNameComparator
-				= Comparator.comparing(FileName::getSeriesDescription);
-
 		FileName[] names = new FileName[list.size()];
 		names = list.toArray(names);
-		//Arrays.sort(names);
-		Arrays.sort(names, FileNameComparator);
+		Arrays.sort(names);
 		return names;
 	}
 
-	//devides the files into series
-	public void addSeries() {
+	public void generateSeries() {
 		for (final FileName name : list) {
 			String seriesDesc = name.getSeriesDescription();
 			if(!seriesTable.containsKey(seriesDesc)){
 				Series series = new Series(name);
+				series.showDicomFiles(showDicomFiles);
 				seriesTable.put(seriesDesc, series);
 			}
 			else {
@@ -154,11 +153,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		dp.add(cb);
 		dp.add(studyName, RowLayout.span(4));
 		dp.add(RowLayout.crlf());
-/*		for (FileName fn : getFileNames()) {
-			fn.display(dp);
-		}*/
-
-		addSeries();
+		generateSeries();
 		Set<String> keys = seriesTable.keySet();
 		for (String key : keys) {
 			seriesTable.get(key).display(dp);
