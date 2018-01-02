@@ -24,6 +24,7 @@ public class Study implements ActionListener, Comparable<Study> {
 	StudyName studyName = null;
 	String patientName = null;
 	String studyDate = null;
+	String patientID = null;
 	boolean showDicomFiles = false;
 
 	public Study(FileName fileName) {
@@ -32,6 +33,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		cb = new StudyCheckBox();
 		cb.addActionListener(this);
 		patientName = fileName.getPatientName();
+		patientID = fileName.getPatientID();
 		studyDate = fileName.getStudyDate();
 		studyName = new StudyName(fileName);
 		studyName.addActionListener(this);
@@ -75,6 +77,8 @@ public class Study implements ActionListener, Comparable<Study> {
 	public String getPatientName() {
 		return patientName;
 	}
+
+	public String getPatientID() { return patientID; }
 
 	public String getStudyDate() {
 		return studyDate;

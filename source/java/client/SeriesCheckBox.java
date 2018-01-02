@@ -18,7 +18,7 @@ public class SeriesCheckBox extends JCheckBox {
 
     public SeriesCheckBox() {
         super();
-        setBorder(BorderFactory.createEmptyBorder(0,20,0,0));
+        setBorder(BorderFactory.createEmptyBorder(0,30,0,0));
         setSelected(false);
         setBackground(Color.white);
     }

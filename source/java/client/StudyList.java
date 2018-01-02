@@ -7,6 +7,8 @@
 
 package client;
 
+import org.rsna.ui.RowLayout;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -20,6 +22,7 @@ public class StudyList implements ActionListener {
 	boolean radioMode = false;
 	boolean anio = false;
 	boolean showDicomFiles = false;
+	LinkedList<String> patients;
 
 	FileFilter filesOnlyFilter = new FilesOnlyFilter();
 	FileFilter directoriesOnlyFilter = new DirectoriesOnlyFilter();
@@ -33,6 +36,7 @@ public class StudyList implements ActionListener {
 		table = new Hashtable<String,Study>();
 		addFiles(directory);
 		StatusPane.getInstance().setText("Directory: "+directory);
+		patients = new LinkedList<String>();
 	}
 
 	public void actionPerformed(ActionEvent event) {
@@ -85,8 +89,25 @@ public class StudyList implements ActionListener {
 		for (File file : files) addFiles(file);
 	}
 
-	public void display(DirectoryPanel dp) {
+	public LinkedList<String> getPatients() {
 		for (Study study : getStudies()) {
+			if(!patients.contains(study.getPatientID())) {
+				patients.add(study.getPatientID());
+			}
+		}
+		return patients;
+	}
+
+	public void display(DirectoryPanel dp) {
+		getPatients();
+		for (Study study : getStudies()) {
+			String pn = study.getPatientID();
+			if (patients.contains(pn)) {
+				PatientName patientName = new PatientName(study.getPatientName() + " - " + pn);
+				dp.add(patientName, RowLayout.span(4));
+				dp.add(RowLayout.crlf());
+				patients.remove(patients.indexOf(pn));
+			}
 			study.display(dp);
 		}
 	}

@@ -20,7 +20,7 @@ public class FileCheckBox extends JCheckBox {
 		super();
 		this.fileName = fileName;
 		this.statusText = statusText;
-		setBorder(BorderFactory.createEmptyBorder(0,40,0,0));
+		setBorder(BorderFactory.createEmptyBorder(0,50,0,0));
 		setSelected(false);
 		setBackground(Color.white);
 		setAlignmentY(0.0f);

@@ -18,6 +18,7 @@ public class StudyCheckBox extends JCheckBox {
 
 	public StudyCheckBox() {
 		super();
+		setBorder(BorderFactory.createEmptyBorder(0,10,0,0));
 		setSelected(false);
 		setBackground(Color.white);
 	}

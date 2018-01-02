@@ -15,13 +15,11 @@ public class StudyName extends JButton {
 
 	public StudyName(FileName fileName) {
 		super();
-		String name = fileName.getPatientName()
-				+ " [" + fileName.getPatientID() + "] "
-				+ fileName.getStudyDate()
+		String name = fileName.getStudyDate()
 				//+ " " + fileName.getModality();
 				+ " " + fileName.getStudyDescription();
 		setText(name);
-		setFont( new Font( "Monospaced", Font.BOLD, 16 ) );
+		setFont( new Font( "Monospaced", Font.BOLD, 17 ) );
 		setForeground( Color.blue );
 		setBorder(BorderFactory.createEmptyBorder());
 		setBorderPainted(false);
