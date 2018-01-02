@@ -16,7 +16,6 @@ public class StudyName extends JButton {
 	public StudyName(FileName fileName) {
 		super();
 		String name = fileName.getStudyDate()
-				//+ " " + fileName.getModality();
 				+ " " + fileName.getStudyDescription();
 		setText(name);
 		setFont( new Font( "Monospaced", Font.BOLD, 17 ) );
