@@ -21,7 +21,9 @@ public class FileName implements Comparable<FileName> {
 	String patientName = "";
 	String patientID = "";
 	String studyInstanceUID = "";
+	String seriesInstanceUID = "";
 	String studyDate = "";
+	String seriesDate = "";
 	String modality = "";
 	int seriesNumberInt = 0;
 	int acquisitionNumberInt = 0;
@@ -47,8 +49,10 @@ public class FileName implements Comparable<FileName> {
 			patientName = fixNull(dob.getPatientName());
 			patientID = fixNull(dob.getPatientID());
 			studyInstanceUID = fixNull(dob.getStudyInstanceUID());
+			seriesInstanceUID = fixNull(dob.getSeriesInstanceUID());
 			modality = fixNull(dob.getModality());
 			studyDate = fixDate(dob.getStudyDate());
+			//seriesDate = fixDate();
 			String seriesNumber = fixNull(dob.getSeriesNumber());
 			String acquisitionNumber = fixNull(dob.getAcquisitionNumber());
 			String instanceNumber = fixNull(dob.getInstanceNumber());
@@ -90,6 +94,8 @@ public class FileName implements Comparable<FileName> {
 	public String getStudyInstanceUID() {
 		return studyInstanceUID;
 	}
+
+	public String getSeriesInstanceUID() { return seriesInstanceUID; }
 
 	public String getStudyDate() {
 		return studyDate;

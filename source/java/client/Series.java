@@ -112,6 +112,7 @@ public class Series implements ActionListener, Comparable<Series> {
     public void display(DirectoryPanel dp) {
         cb.setSeries(this);
         dp.add(cb);
+        seriesName.setNumberOfFiles(list.size());
         dp.add(seriesName, RowLayout.span(4));
         dp.add(RowLayout.crlf());
         if(showDicomFiles) {

@@ -18,7 +18,6 @@ public class Study implements ActionListener, Comparable<Study> {
 
 	LinkedList<FileName> list = null;
 	LinkedList<SeriesName> seriesNameList = null;
-	LinkedList<Series> seriesList = null;
 	Hashtable<String, Series> seriesTable;
 	StudyCheckBox cb = null;
 	StudyName studyName = null;
@@ -139,25 +138,28 @@ public class Study implements ActionListener, Comparable<Study> {
 
 	public void generateSeries() {
 		for (final FileName name : list) {
-			String seriesDesc = name.getSeriesDescription();
-			if(!seriesTable.containsKey(seriesDesc)){
+			studyName.addSeriesModality(name.getModality());
+			String seriesInstanceUID = name.getSeriesInstanceUID();
+			if(!seriesTable.containsKey(seriesInstanceUID)){
 				Series series = new Series(name);
 				series.showDicomFiles(showDicomFiles);
-				seriesTable.put(seriesDesc, series);
+				seriesTable.put(seriesInstanceUID, series);
 			}
 			else {
-				Series s = seriesTable.get(seriesDesc);
+				Series s = seriesTable.get(seriesInstanceUID);
 				s.add(name);
 			}
 		}
 	}
 
 	public void display(DirectoryPanel dp) {
+		generateSeries();
 		cb.setStudy(this);
 		dp.add(cb);
+		studyName.setClassification();
+		studyName.setNumberOfSeries(seriesTable.size());
 		dp.add(studyName, RowLayout.span(4));
 		dp.add(RowLayout.crlf());
-		generateSeries();
 		Set<String> keys = seriesTable.keySet();
 		for (String key : keys) {
 			seriesTable.get(key).display(dp);

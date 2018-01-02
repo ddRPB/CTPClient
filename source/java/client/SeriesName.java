@@ -13,10 +13,14 @@ import javax.swing.*;
 
 public class SeriesName extends JButton {
 
+    int numberOfFiles = 0;
+    String name = "";
+    FileName fn = null;
+
     public SeriesName(FileName fileName) {
         super();
-        String name = fileName.getSeriesDescription();
-        setText(name);
+        fn = fileName;
+        updateName();
         setFont( new Font( "Monospaced", Font.BOLD, 14 ) );
         setForeground( Color.blue );
         setBorder(BorderFactory.createEmptyBorder());
@@ -26,4 +30,17 @@ public class SeriesName extends JButton {
         setFocusPainted(false);
     }
 
+    public void setNumberOfFiles (int i) {
+        numberOfFiles = i;
+        updateName();
+    }
+
+    public void updateName () {
+        name = "[" + fn.getModality() + "]"
+                + " " + fn.getSeriesDescription()
+                + " " + "(" + String.valueOf(numberOfFiles) + ")"
+                + " " + "SERIES"
+                + " " + fn.getStudyDate();
+        setText(name);
+    }
 }
