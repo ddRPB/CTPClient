@@ -174,7 +174,7 @@ public class FileName implements Comparable<FileName> {
 		JPanel panel = new JPanel();
 		panel.setLayout(new RowLayout(0, 0));
 		panel.setBackground(Color.white);
-		JLabel name = new JLabel(file.getName());
+		JLabel name = new JLabel("  " + file.getName());
 		name.setFont( new Font( "Monospaced", Font.PLAIN, 12 ) );
 		name.setForeground( Color.BLACK );
 		panel.add(name);
@@ -182,14 +182,11 @@ public class FileName implements Comparable<FileName> {
 		panel.add(new JLabel(description));
 		panel.add(RowLayout.crlf());
 
-		panel.add(new JLabel("modality: " + modality));
+		panel.add(new JLabel("      " + fileSize.getText() + " Byte"));
 		panel.add(RowLayout.crlf());
 
 		dp.add(cb);
 		dp.add(panel);
-		dp.add(Box.createHorizontalStrut(20));
-		dp.add(fileSize);
-		dp.add(statusText);
 		dp.add(RowLayout.crlf());
 	}
 

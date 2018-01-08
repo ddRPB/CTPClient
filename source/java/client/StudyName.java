@@ -68,11 +68,12 @@ public class StudyName extends JButton {
 	}
 
 	public void updateName() {
-		name = "[" + classification + "]"
-				+ " " +	fn.getStudyDescription()
-				+ " " + "<Series=" + String.valueOf(numberOfSeries) + ">"
-				+ " " + "STUDY"
-				+ " " + fn.getStudyDate();
+		name = String.format("%-16s", "[" + classification + "]")
+				+ " " +	String.format("%-31s", fn.getStudyDescription().substring(0,
+					Math.min(fn.getStudyDescription().length(), 31)))
+				+ " " + String.format("%-12s", "<Series=" + String.format("%03d", numberOfSeries) + ">")
+				+ " " + String.format("%-10s", "  STUDY")
+				+ " " + String.format("%-2s", fn.getStudyDate());
 		setText(name);
 	}
 }

@@ -158,7 +158,8 @@ public class Study implements ActionListener, Comparable<Study> {
 		dp.add(cb);
 		studyName.setClassification();
 		studyName.setNumberOfSeries(seriesTable.size());
-		dp.add(studyName, RowLayout.span(4));
+		//dp.add(studyName, RowLayout.span(4));
+		dp.add(studyName);
 		dp.add(RowLayout.crlf());
 		Set<String> keys = seriesTable.keySet();
 		for (String key : keys) {

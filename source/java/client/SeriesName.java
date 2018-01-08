@@ -36,11 +36,12 @@ public class SeriesName extends JButton {
     }
 
     public void updateName () {
-        name = "[" + fn.getModality() + "]"
-                + " " + fn.getSeriesDescription()
-                + " " + "(" + String.valueOf(numberOfFiles) + ")"
-                + " " + "SERIES"
-                + " " + fn.getStudyDate();
+        name = String.format("%-16s", "[" + fn.getModality() + "]")
+                + " " + String.format("%-53s", fn.getSeriesDescription().substring(0,
+                    Math.min(fn.getSeriesDescription().length(), 53)))
+                + " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")
+                + " " + String.format("%-10s", "SERIES")
+                + " " + String.format("%-2s", "  " + fn.getStudyDate());
         setText(name);
     }
 }

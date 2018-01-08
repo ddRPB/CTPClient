@@ -20,5 +20,9 @@ public class FileSize extends JLabel {
 		setAlignmentX(1.0f);
 		setAlignmentY(0.0f);
 	}
+
+	public String getSizeAsString(){
+		return getText();
+	}
 }
 
