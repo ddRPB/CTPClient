@@ -96,7 +96,9 @@ public class SenderThread extends Thread {
 
 		LinkedList<FileName> fileNames = new LinkedList<FileName>();
 		Study[] studies = studyList.getStudies();
+		boolean isStudySelected = false;
 		for (Study study : studies) {
+			if (study.isSelected()) isStudySelected = true;
 			Series[] series = study.getSeries();
 			for (Series s : series) {
 				if (s.isSelected()) {
@@ -106,6 +108,11 @@ public class SenderThread extends Thread {
 					}
 				}
 			}
+		}
+
+		if (!isStudySelected) {
+			parent.abortTransmission();
+			return;
 		}
 
 		if ((dicomURLString != null) && !dicomURLString.equals("") && (fileNames.size() > 0)) {

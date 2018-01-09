@@ -524,6 +524,24 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		SwingUtilities.invokeLater(enable);
 	}
 
+	public void abortTransmission() {
+		final JFrame parent = this;
+		Runnable enable = new Runnable() {
+
+			public void run() {
+                scpButton.setEnabled(true);
+                browseButton.setEnabled(true);
+                dialogButton.setEnabled(true);
+                startButton.setEnabled(true);
+				JOptionPane.showMessageDialog(parent,
+						"You have to select at least one study in order to proceed.",
+						"Information", JOptionPane.WARNING_MESSAGE);
+			}
+		};
+		sending = false;
+		SwingUtilities.invokeLater(enable);
+	}
+
 	public String getHttpURL() {
 		return httpURLField.getText().trim();
 	}
