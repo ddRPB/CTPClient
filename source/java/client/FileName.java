@@ -9,6 +9,8 @@ package client;
 
 import java.awt.*;
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import javax.swing.*;
 import org.rsna.ctp.objects.DicomObject;
 import org.rsna.ui.RowLayout;
@@ -36,6 +38,7 @@ public class FileName implements Comparable<FileName> {
 
 	String studyDescription = "";
 	String seriesDescription = "";
+	String structureSetROISequence = "";
 
 	public FileName(File file) {
 		this.file = file;
@@ -52,7 +55,6 @@ public class FileName implements Comparable<FileName> {
 			seriesInstanceUID = fixNull(dob.getSeriesInstanceUID());
 			modality = fixNull(dob.getModality());
 			studyDate = fixDate(dob.getStudyDate());
-			//seriesDate = fixDate();
 			String seriesNumber = fixNull(dob.getSeriesNumber());
 			String acquisitionNumber = fixNull(dob.getAcquisitionNumber());
 			String instanceNumber = fixNull(dob.getInstanceNumber());
@@ -62,6 +64,30 @@ public class FileName implements Comparable<FileName> {
 
 			studyDescription = fixNull(dob.getStudyDescription());
 			seriesDescription = fixNull(dob.getSeriesDescription());
+
+			seriesDate = fixDate(dob.getElementValue(524321));
+
+			/*ByteBuffer bb = null;
+			bb = dob.getElementByteBuffer(805699616);
+			//Charset charset = Charset.forName("UTF-8");
+			//structureSetROISequence = charset.decode(bb).toString();
+			structureSetROISequence = String.valueOf(bb.capacity());
+*/
+/*
+			byte[] byteArray = dob.getElementBytes(805699616);
+			structureSetROISequence = new String(String.valueOf(byteArray.length));
+*/
+
+
+			//"[3006,0020}"
+			//"(3006,0020)"
+			//"StructureSetROISequence"
+			//0x30060020
+			//805699616
+			//structureSetROISequence = dob.getElementValue("StructureSetROISequence", "myDefaultString");
+
+			//--> all this approaches work with other non sequence tags...
+
 
 		/*	if (isImage) {
 				description += "image";
@@ -100,6 +126,8 @@ public class FileName implements Comparable<FileName> {
 	public String getStudyDate() {
 		return studyDate;
 	}
+
+	public String getSeriesDate() { return seriesDate;}
 
 	public String getModality() {
 		return modality;
@@ -183,6 +211,9 @@ public class FileName implements Comparable<FileName> {
 		panel.add(RowLayout.crlf());
 
 		panel.add(new JLabel("      " + fileSize.getText() + " Byte"));
+		panel.add(RowLayout.crlf());
+
+		panel.add(new JLabel("SSRS: " + structureSetROISequence));
 		panel.add(RowLayout.crlf());
 
 		dp.add(cb);

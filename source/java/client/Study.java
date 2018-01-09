@@ -152,13 +152,19 @@ public class Study implements ActionListener, Comparable<Study> {
 		}
 	}
 
+	public Series[] getSeries() {
+		Series[] series = new Series[seriesTable.size()];
+		series = seriesTable.values().toArray(series);
+		Arrays.sort(series);
+		return series;
+	}
+
 	public void display(DirectoryPanel dp) {
 		generateSeries();
 		cb.setStudy(this);
 		dp.add(cb);
 		studyName.setClassification();
 		studyName.setNumberOfSeries(seriesTable.size());
-		//dp.add(studyName, RowLayout.span(4));
 		dp.add(studyName);
 		dp.add(RowLayout.crlf());
 		Set<String> keys = seriesTable.keySet();

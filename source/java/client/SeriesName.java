@@ -28,6 +28,7 @@ public class SeriesName extends JButton {
         setMargin(new Insets(0, 0, 0, 0));
         setContentAreaFilled(false);
         setFocusPainted(false);
+
     }
 
     public void setNumberOfFiles (int i) {
@@ -36,12 +37,24 @@ public class SeriesName extends JButton {
     }
 
     public void updateName () {
-        name = String.format("%-16s", "[" + fn.getModality() + "]")
-                + " " + String.format("%-53s", fn.getSeriesDescription().substring(0,
+
+        if(fn.getModality().equals("RTSTRUCT")) {
+            name = String.format("%-16s", "[" + fn.getModality() + "]")
+                    + " " + String.format("%-50s", fn.getSeriesDescription().substring(0,
+                    Math.min(fn.getSeriesDescription().length(), 50)))
+                    + " " + String.format("%-11s", "<ROI=NR>")
+                    //+ " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")
+                    + " " + String.format("%-10s", "SERIES")
+                    + " " + String.format("%-2s", "  " + fn.getSeriesDate());
+        }
+        else {
+            name = String.format("%-16s", "[" + fn.getModality() + "]")
+                    + " " + String.format("%-53s", fn.getSeriesDescription().substring(0,
                     Math.min(fn.getSeriesDescription().length(), 53)))
-                + " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")
-                + " " + String.format("%-10s", "SERIES")
-                + " " + String.format("%-2s", "  " + fn.getStudyDate());
+                    + " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")
+                    + " " + String.format("%-10s", "SERIES")
+                    + " " + String.format("%-2s", "  " + fn.getSeriesDate());
+        }
         setText(name);
     }
 }

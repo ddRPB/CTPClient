@@ -97,10 +97,13 @@ public class SenderThread extends Thread {
 		LinkedList<FileName> fileNames = new LinkedList<FileName>();
 		Study[] studies = studyList.getStudies();
 		for (Study study : studies) {
-			if (study.isSelected()) {
-				FileName[] names = study.getFileNames();
-				for (FileName name : names) {
-					if (name.isSelected()) fileNames.add(name);
+			Series[] series = study.getSeries();
+			for (Series s : series) {
+				if (s.isSelected()) {
+					FileName[] names = s.getFileNames();
+					for (FileName name : names) {
+						if (name.isSelected()) fileNames.add(name);
+					}
 				}
 			}
 		}
