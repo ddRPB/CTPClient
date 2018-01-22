@@ -9,11 +9,9 @@ package client;
 
 import org.rsna.ui.RowLayout;
 
-import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
-import javax.swing.*;
 
 public class StudyList implements ActionListener {
 

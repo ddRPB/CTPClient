@@ -8,7 +8,6 @@
 package client;
 
 import java.awt.*;
-import java.io.*;
 import javax.swing.*;
 
 public class SeriesName extends JButton {
@@ -49,7 +48,6 @@ public class SeriesName extends JButton {
                     + " " + String.format("%-50s", fn.getSeriesDescription().substring(0,
                     Math.min(fn.getSeriesDescription().length(), 50)))
                     + " " + String.format("%-11s", "<ROI=" + fn.getROINumberList().size() + ">")
-                    //+ " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")
                     + " " + String.format("%-10s", "SERIES")
                     + " " + String.format("%-2s", "  " + fn.getSeriesDate());
         }

@@ -388,8 +388,7 @@ public class SenderThread extends Thread {
 				conn.disconnect();
 				return false;
 			}
-			else if (responseCode == HttpResponse.ok) return true;
-			else return false;
+			else return responseCode == HttpResponse.ok;
 		}
 		catch (Exception e) {
 			log.append("STOW: export failed: " + e.getMessage());

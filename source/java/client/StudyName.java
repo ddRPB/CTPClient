@@ -8,7 +8,6 @@
 package client;
 
 import java.awt.*;
-import java.io.*;
 import java.util.LinkedList;
 import javax.swing.*;
 

@@ -8,14 +8,10 @@
 package client;
 
 import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.net.*;
 import java.util.*;
 import javax.swing.*;
-import java.nio.charset.Charset;
+
 import org.rsna.ui.*;
-import org.rsna.util.*;
 import org.w3c.dom.*;
 
 public class DialogPanel extends JPanel {

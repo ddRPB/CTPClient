@@ -9,9 +9,8 @@ package client;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
 import java.util.*;
-import javax.swing.*;
+
 import org.rsna.ui.RowLayout;
 
 public class Study implements ActionListener, Comparable<Study> {

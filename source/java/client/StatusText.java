@@ -8,7 +8,6 @@
 package client;
 
 import java.awt.*;
-import java.io.*;
 import javax.swing.*;
 
 public class StatusText extends JLabel {

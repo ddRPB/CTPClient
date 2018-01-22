@@ -151,9 +151,6 @@ public class Series implements ActionListener, Comparable<Series> {
             for (ROI r : roiList) {
                 r.display(dp);
             }
-
-            /*ROI roi = new ROI(fn);
-            roi.display(dp);*/
         }
 
         if(showDicomFiles) {

@@ -9,7 +9,6 @@ package client;
 
 import java.io.File;
 import java.io.FileFilter;
-import org.rsna.ctp.objects.DicomObject;
 
 class FilesOnlyFilter implements FileFilter {
 

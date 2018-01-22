@@ -2,7 +2,6 @@ package client;
 
 import org.rsna.ui.RowLayout;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -109,14 +108,6 @@ public class ROI implements ActionListener, Comparable<ROI>{
         dp.add(cb);
         dp.add(rname, RowLayout.span(4));
         dp.add(RowLayout.crlf());
-/*        int i = 0;
-        for (String s : fn.getROINameList()) {
-            dp.add(new ROICheckBox());
-            dp.add(new ROIName("[ROI] " + fn.getROINumberList().get(i) + ": " + s),
-                    RowLayout.span(4));
-            dp.add(RowLayout.crlf());
-            i++;
-        }*/
     }
 
 

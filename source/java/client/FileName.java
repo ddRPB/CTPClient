@@ -9,8 +9,6 @@ package client;
 
 import java.awt.*;
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.LinkedList;
 import javax.swing.*;
 
@@ -47,7 +45,7 @@ public class FileName implements Comparable<FileName> {
 	LinkedList<String> listROINames = null;
 	LinkedList<String> listROINumber = null;
 	LinkedList<String> listRefROINumber = null;
-	LinkedList<String> listROIOberservationLabel = null;
+	LinkedList<String> listROIObservationLabel = null;
 	LinkedList<String> listROIInterpretedType = null;
 
 	DicomObject dob;
@@ -58,7 +56,7 @@ public class FileName implements Comparable<FileName> {
 		listROINames = new LinkedList<String>();
 		listROINumber = new LinkedList<String>();
 		listRefROINumber = new LinkedList<String>();
-		listROIOberservationLabel = new LinkedList<String>();
+		listROIObservationLabel = new LinkedList<String>();
 		listROIInterpretedType = new LinkedList<String>();
 		statusText = new StatusText();
 		fileSize = new FileSize(file);
@@ -96,7 +94,7 @@ public class FileName implements Comparable<FileName> {
 			}
 			else if (modality.equals("RTSTRUCT")) {
 				seriesDescription = dob.getElementValue(Tags.StructureSetLabel);
-				seriesDescription += " - " + dob.getElementValue(Tags.StructureSetName);
+				seriesDescription += dob.getElementValue(Tags.StructureSetName);
 				if (seriesDescription == null) { dob.getElementValue(Tags.StructureSetDescription); }
 				seriesDate = fixDate(dob.getElementValue(Tags.StructureSetDate));
 			}
@@ -110,7 +108,7 @@ public class FileName implements Comparable<FileName> {
 			if (seriesDescription == null) { seriesDescription = dob.getSeriesDescription(); }
 			if (seriesDate.equals("")) { seriesDate =  fixDate(dob.getElementValue(Tags.SeriesDate));}
 
-
+			//get ROI information
 			if(modality.equals("RTSTRUCT")) {
 				DcmElement roiSequence = dob.getDataset().get(Tags.StructureSetROISeq);
 				DcmElement roiObservations = dob.getDataset().get(Tags.RTROIObservationsSeq);
@@ -126,20 +124,11 @@ public class FileName implements Comparable<FileName> {
 					for (int i = 0; i < roiObservations.countItems(); i++) {
 						Dataset dcm = roiObservations.getItem(i);
 						listRefROINumber.add(dcm.getString(Tags.RefROINumber));
-						listROIOberservationLabel.add(fixNull(dcm.getString(Tags.ROIObservationLabel)));
+						listROIObservationLabel.add(fixNull(dcm.getString(Tags.ROIObservationLabel)));
 						listROIInterpretedType.add(fixNull(dcm.getString(Tags.RTROIInterpretedType)));
 					}
 				}
 			}
-
-			/*	if (isImage) {
-				description += "image";
-				description += getText("Series:", seriesNumber, " ");
-				description += getText("Acquisition:", acquisitionNumber, " ");
-				description += getText("Image:", instanceNumber, "");
-			}
-			else description += fixNull(dob.getSOPClassName());
-		*/
 		}
 		catch (Exception nonDICOM) { }
 	}
@@ -150,7 +139,7 @@ public class FileName implements Comparable<FileName> {
 
     public  LinkedList<String> getRefROINumberList() { return listRefROINumber; }
 
-    public  LinkedList<String> getROIObservationLabelList() { return listROIOberservationLabel; }
+    public  LinkedList<String> getROIObservationLabelList() { return listROIObservationLabel; }
 
     public  LinkedList<String> getROIInterpretedTypeList() { return listROIInterpretedType; }
 
@@ -197,11 +186,6 @@ public class FileName implements Comparable<FileName> {
 		if (s.length() == 8) {
 			s = s.substring(0,4) + "." + s.substring(4,6) + "." + s.substring(6);
 		}
-		return s;
-	}
-
-	private String getText(String prefix, String s, String suffix) {
-		if (s.length() != 0) s = prefix + s + suffix;
 		return s;
 	}
 

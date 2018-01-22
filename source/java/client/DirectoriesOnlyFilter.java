@@ -12,9 +12,9 @@ import java.io.FileFilter;
 
 class DirectoriesOnlyFilter implements FileFilter {
 
-	public DirectoriesOnlyFilter() { };
+	public DirectoriesOnlyFilter() { }
 
-	public boolean accept(File file) {
+    public boolean accept(File file) {
 		return file.isDirectory();
 	}
 
