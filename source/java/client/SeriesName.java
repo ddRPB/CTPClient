@@ -16,10 +16,12 @@ public class SeriesName extends JButton {
     int numberOfFiles = 0;
     String name = "";
     FileName fn = null;
+    String modality = "";
 
     public SeriesName(FileName fileName) {
         super();
         fn = fileName;
+        modality = fn.getModality();
         updateName();
         setFont( new Font( "Monospaced", Font.BOLD, 14 ) );
         setForeground( Color.blue );
@@ -36,19 +38,23 @@ public class SeriesName extends JButton {
         updateName();
     }
 
+    public String getModality(){
+        return modality;
+    }
+
     public void updateName () {
 
-        if(fn.getModality().equals("RTSTRUCT")) {
-            name = String.format("%-16s", "[" + fn.getModality() + "]")
+        if(modality.equals("RTSTRUCT")) {
+            name = String.format("%-16s", "[" + modality + "]")
                     + " " + String.format("%-50s", fn.getSeriesDescription().substring(0,
                     Math.min(fn.getSeriesDescription().length(), 50)))
-                    + " " + String.format("%-11s", "<ROI=NR>")
+                    + " " + String.format("%-11s", "<ROI=" + fn.getROINumberList().size() + ">")
                     //+ " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")
                     + " " + String.format("%-10s", "SERIES")
                     + " " + String.format("%-2s", "  " + fn.getSeriesDate());
         }
         else {
-            name = String.format("%-16s", "[" + fn.getModality() + "]")
+            name = String.format("%-16s", "[" + modality + "]")
                     + " " + String.format("%-53s", fn.getSeriesDescription().substring(0,
                     Math.min(fn.getSeriesDescription().length(), 53)))
                     + " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")

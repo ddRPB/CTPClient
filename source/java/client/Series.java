@@ -9,21 +9,24 @@ package client;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
 import java.util.*;
-import javax.swing.*;
+
 import org.rsna.ui.RowLayout;
 
 public class Series implements ActionListener, Comparable<Series> {
 
     LinkedList<FileName> list = null;
+    LinkedList<ROI> roiList = null;
     SeriesCheckBox cb = null;
     SeriesName seriesName = null;
     String patientName = null;
     boolean showDicomFiles = false;
+    FileName fn = null;
 
     public Series(FileName fileName) {
+        fn = fileName;
         list = new LinkedList<FileName>();
+        roiList = new LinkedList<ROI>();
         cb = new SeriesCheckBox();
         cb.addActionListener(this);
         patientName = fileName.getPatientName();
@@ -84,6 +87,11 @@ public class Series implements ActionListener, Comparable<Series> {
             fn.setSelected(true);
             if (dp != null) dp.setRowVisible(fn.getCheckBox(), true);
         }
+        for(ROI r : roiList) {
+
+            r.setSelected(true);
+            if (dp != null) dp.setRowVisible(r.getCheckBox(), true);
+        }
     }
 
     public void deselectAll() {
@@ -91,6 +99,11 @@ public class Series implements ActionListener, Comparable<Series> {
         for (FileName fn : list) {
             fn.setSelected(false);
             if (dp != null) dp.setRowVisible(fn.getCheckBox(), false);
+        }
+        for(ROI r : roiList) {
+
+            r.setSelected(false);
+            if (dp != null) dp.setRowVisible(r.getCheckBox(), false);
         }
     }
 
@@ -109,12 +122,40 @@ public class Series implements ActionListener, Comparable<Series> {
         return names;
     }
 
+    public void generateROIs() {
+        int i = 0;
+        String ObsLabel = "", RoiType = "";
+        for(String name : fn.getROINameList()) {
+
+            for (String RefRoiNumber : fn.getRefROINumberList()) {
+                if (RefRoiNumber.equals(fn.getROINumberList().get(i))) {
+                    ObsLabel = fn.getROIObservationLabelList().get(i);
+                    RoiType = fn.getROIInterpretedTypeList().get(i);
+                    break;
+                }
+            }
+
+            roiList.add(new ROI(name, fn.getROINumberList().get(i), ObsLabel, RoiType));
+            i++;
+        }
+    }
+
     public void display(DirectoryPanel dp) {
-        cb.setSeries(this);
         dp.add(cb);
         seriesName.setNumberOfFiles(list.size());
         dp.add(seriesName, RowLayout.span(4));
         dp.add(RowLayout.crlf());
+
+        if(seriesName.getModality().equals("RTSTRUCT")) {
+            generateROIs();
+            for (ROI r : roiList) {
+                r.display(dp);
+            }
+
+            /*ROI roi = new ROI(fn);
+            roi.display(dp);*/
+        }
+
         if(showDicomFiles) {
             for (FileName fn : getFileNames()) {
                 fn.display(dp);

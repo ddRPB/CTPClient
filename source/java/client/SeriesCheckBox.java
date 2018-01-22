@@ -8,26 +8,14 @@
 package client;
 
 import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
 import javax.swing.*;
 
 public class SeriesCheckBox extends JCheckBox {
-
-    Series series = null;
 
     public SeriesCheckBox() {
         super();
         setBorder(BorderFactory.createEmptyBorder(0,30,0,0));
         setSelected(false);
         setBackground(Color.white);
-    }
-
-    public Series getSeries() {
-        return series;
-    }
-
-    public void setSeries(Series series) {
-        this.series = series;
     }
 }

@@ -11,7 +11,12 @@ import java.awt.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.LinkedList;
 import javax.swing.*;
+
+import org.dcm4che.data.Dataset;
+import org.dcm4che.data.DcmElement;
+import org.dcm4che.dict.Tags;
 import org.rsna.ctp.objects.DicomObject;
 import org.rsna.ui.RowLayout;
 import org.rsna.util.StringUtil;
@@ -38,15 +43,27 @@ public class FileName implements Comparable<FileName> {
 
 	String studyDescription = "";
 	String seriesDescription = "";
-	String structureSetROISequence = "";
+
+	LinkedList<String> listROINames = null;
+	LinkedList<String> listROINumber = null;
+	LinkedList<String> listRefROINumber = null;
+	LinkedList<String> listROIOberservationLabel = null;
+	LinkedList<String> listROIInterpretedType = null;
+
+	DicomObject dob;
 
 	public FileName(File file) {
 		this.file = file;
 		cb = new FileCheckBox();
+		listROINames = new LinkedList<String>();
+		listROINumber = new LinkedList<String>();
+		listRefROINumber = new LinkedList<String>();
+		listROIOberservationLabel = new LinkedList<String>();
+		listROIInterpretedType = new LinkedList<String>();
 		statusText = new StatusText();
 		fileSize = new FileSize(file);
 		try {
-			DicomObject dob = new DicomObject(file);
+			dob = new DicomObject(file);
 			isDICOM = true;
 			isImage = dob.isImage();
 			patientName = fixNull(dob.getPatientName());
@@ -64,32 +81,58 @@ public class FileName implements Comparable<FileName> {
 
 			studyDescription = fixNull(dob.getStudyDescription());
 			seriesDescription = fixNull(dob.getSeriesDescription());
+			seriesDate = fixDate(dob.getElementValue(Tags.SeriesDate));
 
-			seriesDate = fixDate(dob.getElementValue(524321));
+			//look for a precise description
+			if (modality.equals("RTDOSE")) {
+				seriesDescription = dob.getElementValue(Tags.DoseComment);
+				seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
+			}
+			else if (modality.equals("RTPLAN")) {
+                seriesDescription = dob.getElementValue(Tags.RTPlanLabel);
+                if (seriesDescription == null) { dob.getElementValue(Tags.RTPlanName); }
+                if (seriesDescription == null) { dob.getElementValue(Tags.RTPlanDescription); }
+				seriesDate = fixDate(dob.getElementValue(Tags.RTPlanDate));
+			}
+			else if (modality.equals("RTSTRUCT")) {
+				seriesDescription = dob.getElementValue(Tags.StructureSetLabel);
+				seriesDescription += " - " + dob.getElementValue(Tags.StructureSetName);
+				if (seriesDescription == null) { dob.getElementValue(Tags.StructureSetDescription); }
+				seriesDate = fixDate(dob.getElementValue(Tags.StructureSetDate));
+			}
+			else if (modality.equals("RTIMAGE")) {
+				seriesDescription = dob.getElementValue(Tags.RTImageName);
+				if (seriesDescription == null) { dob.getElementValue(Tags.RTImageLabel); }
+				if (seriesDescription == null) { dob.getElementValue(Tags.RTImageDescription); }
+				seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
+			}
 
-			/*ByteBuffer bb = null;
-			bb = dob.getElementByteBuffer(805699616);
-			//Charset charset = Charset.forName("UTF-8");
-			//structureSetROISequence = charset.decode(bb).toString();
-			structureSetROISequence = String.valueOf(bb.capacity());
-*/
-/*
-			byte[] byteArray = dob.getElementBytes(805699616);
-			structureSetROISequence = new String(String.valueOf(byteArray.length));
-*/
+			if (seriesDescription == null) { seriesDescription = dob.getSeriesDescription(); }
+			if (seriesDate.equals("")) { seriesDate =  fixDate(dob.getElementValue(Tags.SeriesDate));}
 
 
-			//"[3006,0020}"
-			//"(3006,0020)"
-			//"StructureSetROISequence"
-			//0x30060020
-			//805699616
-			//structureSetROISequence = dob.getElementValue("StructureSetROISequence", "myDefaultString");
+			if(modality.equals("RTSTRUCT")) {
+				DcmElement roiSequence = dob.getDataset().get(Tags.StructureSetROISeq);
+				DcmElement roiObservations = dob.getDataset().get(Tags.RTROIObservationsSeq);
+				if (roiSequence != null) {
+					for (int i = 0; i < roiSequence.countItems(); i++) {
+						Dataset dcm = roiSequence.getItem(i);
+						listROINames.add(dcm.getString(Tags.ROIName));
+						listROINumber.add(dcm.getString(Tags.ROINumber));
+					}
+				}
 
-			//--> all this approaches work with other non sequence tags...
+				if (roiObservations != null) {
+					for (int i = 0; i < roiObservations.countItems(); i++) {
+						Dataset dcm = roiObservations.getItem(i);
+						listRefROINumber.add(dcm.getString(Tags.RefROINumber));
+						listROIOberservationLabel.add(fixNull(dcm.getString(Tags.ROIObservationLabel)));
+						listROIInterpretedType.add(fixNull(dcm.getString(Tags.RTROIInterpretedType)));
+					}
+				}
+			}
 
-
-		/*	if (isImage) {
+			/*	if (isImage) {
 				description += "image";
 				description += getText("Series:", seriesNumber, " ");
 				description += getText("Acquisition:", acquisitionNumber, " ");
@@ -100,6 +143,16 @@ public class FileName implements Comparable<FileName> {
 		}
 		catch (Exception nonDICOM) { }
 	}
+
+	public LinkedList<String> getROINameList() { return listROINames; }
+
+    public LinkedList<String> getROINumberList() { return listROINumber;}
+
+    public  LinkedList<String> getRefROINumberList() { return listRefROINumber; }
+
+    public  LinkedList<String> getROIObservationLabelList() { return listROIOberservationLabel; }
+
+    public  LinkedList<String> getROIInterpretedTypeList() { return listROIInterpretedType; }
 
 	private String fixNull(String s) {
 		return (s == null) ? "" : s;
@@ -211,9 +264,6 @@ public class FileName implements Comparable<FileName> {
 		panel.add(RowLayout.crlf());
 
 		panel.add(new JLabel("      " + fileSize.getText() + " Byte"));
-		panel.add(RowLayout.crlf());
-
-		panel.add(new JLabel("SSRS: " + structureSetROISequence));
 		panel.add(RowLayout.crlf());
 
 		dp.add(cb);
