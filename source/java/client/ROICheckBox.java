@@ -10,5 +10,6 @@ public class ROICheckBox extends JCheckBox{
         setBorder(BorderFactory.createEmptyBorder(0,40,0,0));
         setSelected(false);
         setBackground(Color.white);
+        setEnabled(false);
     }
 }

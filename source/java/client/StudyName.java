@@ -46,6 +46,7 @@ public class StudyName extends JButton {
 
 	public void setClassification() {
 		if (modalities.contains("CT")) {
+			classification = "CT";
 			if (modalities.contains("PT")) {
 				classification = "PET-CT";
 			}
@@ -59,8 +60,14 @@ public class StudyName extends JButton {
 				}
 			}
 		}
+		else if (modalities.contains("MR")) {
+			classification = "MRI";
+			if (modalities.contains("PT")) {
+				classification = "PET-MRI";
+			}
+		}
 		else {
-			classification = "";
+			classification = "OTH";
 			modalities.remove();
 		}
 		updateName();

@@ -22,6 +22,7 @@ public class Series implements ActionListener, Comparable<Series> {
     String patientName = null;
     boolean showDicomFiles = false;
     FileName fn = null;
+    boolean roisVisible = true;
 
     public Series(FileName fileName) {
         fn = fileName;
@@ -54,7 +55,23 @@ public class Series implements ActionListener, Comparable<Series> {
             }
         }
         else if (source.equals(seriesName)) {
-            cb.doClick();
+            if (seriesName.getModality().equals("RTSTRUCT") && roisVisible == true) {
+                hideROIs(false);
+            }
+            else if (seriesName.getModality().equals("RTSTRUCT") && roisVisible == false) {
+                hideROIs(true);
+            }
+            else {
+                cb.doClick();
+            }
+        }
+    }
+
+    public void hideROIs(boolean hide) {
+        DirectoryPanel dp = getDirectoryPanel();
+        for(ROI r : roiList) {
+            if (dp != null) dp.setRowVisible(r.getCheckBox(), hide);
+            roisVisible = hide;
         }
     }
 
@@ -91,6 +108,7 @@ public class Series implements ActionListener, Comparable<Series> {
 
             r.setSelected(true);
             if (dp != null) dp.setRowVisible(r.getCheckBox(), true);
+            roisVisible = true;
         }
     }
 
@@ -104,6 +122,7 @@ public class Series implements ActionListener, Comparable<Series> {
 
             r.setSelected(false);
             if (dp != null) dp.setRowVisible(r.getCheckBox(), false);
+            roisVisible = false;
         }
     }
 

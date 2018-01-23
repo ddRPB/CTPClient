@@ -19,9 +19,20 @@ public class ROI implements ActionListener, Comparable<ROI>{
         cb = new ROICheckBox();
         list = new LinkedList<FileName>();
 
-        String description = numberAsString
-                + ": " + name
-                + " (" + ObsLabel + " - " + RoiType + ")";
+        String description = String.format("%-3s", numberAsString) + ": " + name;
+        if (!ObsLabel.equals("")) {
+            description += " (";
+            description += ObsLabel;
+            if (!RoiType.equals("")) {
+                description += " - " + RoiType;
+            }
+            description += ")";
+        }
+        else if (!RoiType.equals("")) {
+            description += " (" + RoiType + ")";
+        }
+
+
 
         rname = new ROIName("[ROI] "
                 + String.format("%-74s", description.substring(0, Math.min(description.length(), 74)))

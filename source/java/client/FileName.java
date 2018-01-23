@@ -78,34 +78,39 @@ public class FileName implements Comparable<FileName> {
 			instanceNumberInt = StringUtil.getInt(instanceNumber);
 
 			studyDescription = fixNull(dob.getStudyDescription());
-			seriesDescription = fixNull(dob.getSeriesDescription());
-			seriesDate = fixDate(dob.getElementValue(Tags.SeriesDate));
 
 			//look for a precise description
 			if (modality.equals("RTDOSE")) {
-				seriesDescription = dob.getElementValue(Tags.DoseComment);
+				seriesDescription = fixNull(dob.getElementValue(Tags.DoseComment));
 				seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
 			}
 			else if (modality.equals("RTPLAN")) {
-                seriesDescription = dob.getElementValue(Tags.RTPlanLabel);
-                if (seriesDescription == null) { dob.getElementValue(Tags.RTPlanName); }
-                if (seriesDescription == null) { dob.getElementValue(Tags.RTPlanDescription); }
+                seriesDescription = fixNull(dob.getElementValue(Tags.RTPlanLabel));
+                if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.RTPlanName)); }
+                if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.RTPlanDescription)); }
 				seriesDate = fixDate(dob.getElementValue(Tags.RTPlanDate));
 			}
 			else if (modality.equals("RTSTRUCT")) {
-				seriesDescription = dob.getElementValue(Tags.StructureSetLabel);
-				seriesDescription += dob.getElementValue(Tags.StructureSetName);
-				if (seriesDescription == null) { dob.getElementValue(Tags.StructureSetDescription); }
+				seriesDescription = fixNull(dob.getElementValue(Tags.StructureSetLabel));
+				String temp = fixNull(dob.getElementValue(Tags.StructureSetName));
+				if (seriesDescription.equals("")) {
+					seriesDescription += temp;
+				}
+				else if (!temp.equals("")) {
+					seriesDescription += " - " + temp;
+				}
+
+				if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.StructureSetDescription)); }
 				seriesDate = fixDate(dob.getElementValue(Tags.StructureSetDate));
 			}
 			else if (modality.equals("RTIMAGE")) {
-				seriesDescription = dob.getElementValue(Tags.RTImageName);
-				if (seriesDescription == null) { dob.getElementValue(Tags.RTImageLabel); }
-				if (seriesDescription == null) { dob.getElementValue(Tags.RTImageDescription); }
+				seriesDescription = fixNull(dob.getElementValue(Tags.RTImageName));
+				if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.RTImageLabel)); }
+				if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.RTImageDescription)); }
 				seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
 			}
 
-			if (seriesDescription == null) { seriesDescription = dob.getSeriesDescription(); }
+			if (seriesDescription.equals("")) { seriesDescription = fixNull(dob.getSeriesDescription()); }
 			if (seriesDate.equals("")) { seriesDate =  fixDate(dob.getElementValue(Tags.SeriesDate));}
 
 			//get ROI information

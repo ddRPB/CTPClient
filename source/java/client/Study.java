@@ -24,6 +24,7 @@ public class Study implements ActionListener, Comparable<Study> {
 	String studyDate = null;
 	String patientID = null;
 	boolean showDicomFiles = false;
+	boolean seriesVisible = true;
 
 	public Study(FileName fileName) {
 		list = new LinkedList<FileName>();
@@ -57,8 +58,28 @@ public class Study implements ActionListener, Comparable<Study> {
 			}
 		}
 		else if (source.equals(studyName)) {
-			cb.doClick();
+			if (seriesVisible) {
+				hideSeries(false);
+			}
+			else {
+				hideSeries(true);
+			}
 		}
+	}
+
+	public void hideSeries(boolean hide) {
+		DirectoryPanel dp = getDirectoryPanel();
+		for (FileName fn : list) {
+			if (dp != null) dp.setRowVisible(fn.getCheckBox(), hide);
+		}
+		Set<String> keys = seriesTable.keySet();
+		for (String key : keys) {
+			if (dp != null) {
+				dp.setRowVisible(seriesTable.get(key).getCb(), hide);
+				seriesTable.get(key).hideROIs(hide);
+			}
+		}
+		seriesVisible = hide;
 	}
 
 	public int compareTo(Study study) {
@@ -101,7 +122,9 @@ public class Study implements ActionListener, Comparable<Study> {
 		Set<String> keys = seriesTable.keySet();
 		for (String key : keys) {
 			seriesTable.get(key).setSelected(true);
+            if (dp != null) dp.setRowVisible(seriesTable.get(key).getCb(), true);
 		}
+		seriesVisible = true;
 	}
 
 	public void deselectAll() {
@@ -113,7 +136,9 @@ public class Study implements ActionListener, Comparable<Study> {
 		Set<String> keys = seriesTable.keySet();
 		for (String key : keys) {
 			seriesTable.get(key).setSelected(false);
+            if (dp != null) dp.setRowVisible(seriesTable.get(key).getCb(), false);
 		}
+		seriesVisible = false;
 	}
 
 	public void showDicomFiles(boolean s) {

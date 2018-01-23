@@ -290,6 +290,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		}
 		showLogButton = new FieldButton("Show Log");
 		showLogButton.addActionListener(this);
+		showLogButton.setVisible(false);
 		status.addRightComponent(showLogButton);
 		instructionsButton = new FieldButton("Instructions");
 		instructionsButton.addActionListener(this);
