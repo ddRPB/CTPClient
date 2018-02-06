@@ -9,6 +9,7 @@ package client;
 
 import org.rsna.ui.RowLayout;
 
+import javax.swing.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
@@ -16,14 +17,18 @@ import java.util.*;
 public class StudyList implements ActionListener {
 
 	Hashtable<String,Study> table;
+	Hashtable<String, LinkedList<String>> patientIDtoStudy;
+	Hashtable<String, String> patientIDtoPatientName;
+
 	File directory = null;
 	boolean radioMode = false;
 	boolean anio = false;
 	boolean showDicomFiles = false;
-	LinkedList<String> patients;
-
 	FileFilter filesOnlyFilter = new FilesOnlyFilter();
 	FileFilter directoriesOnlyFilter = new DirectoriesOnlyFilter();
+
+	String firstStudy = null;
+	String studyType = "";
 
 	public StudyList(File directory, boolean radioMode,
 					 boolean acceptNonImageObjects, boolean showDicomFiles) {
@@ -32,9 +37,10 @@ public class StudyList implements ActionListener {
 		this.anio = acceptNonImageObjects;
 		this.showDicomFiles = showDicomFiles;
 		table = new Hashtable<String,Study>();
+		patientIDtoStudy = new Hashtable<String,LinkedList<String>>();
+		patientIDtoPatientName = new Hashtable<String,String>();
 		addFiles(directory);
 		StatusPane.getInstance().setText("Directory: "+directory);
-		patients = new LinkedList<String>();
 	}
 
 	public void actionPerformed(ActionEvent event) {
@@ -50,7 +56,8 @@ public class StudyList implements ActionListener {
 	public void selectFirstStudy() {
 		if (table.size() > 0) {
 			deselectAll();
-			getStudies()[0].setSelected(true);
+			//table.get(patientIDtoStudy.get(patientIDtoStudy.keys().nextElement()).getFirst()).setSelected(true);
+			table.get(firstStudy).setSelected(true);
 		}
 	}
 
@@ -58,6 +65,10 @@ public class StudyList implements ActionListener {
 		for (Study study : table.values()) {
 			study.setSelected(false);
 		}
+	}
+
+	public void setStudyType(String st) {
+		studyType = st;
 	}
 
 	public Study[] getStudies() {
@@ -73,6 +84,16 @@ public class StudyList implements ActionListener {
 			FileName fileName = new FileName(file);
 			if (fileName.isDICOM() && (anio || fileName.isImage())) {
 				String siuid = fileName.getStudyInstanceUID();
+				String patientID = fileName.getPatientID();
+
+				if (patientIDtoStudy.get(patientID) == null) {
+					LinkedList<String> siuids = new LinkedList<String>();
+					siuids.add(siuid);
+					patientIDtoStudy.put(patientID, siuids);
+					patientIDtoPatientName.put(patientID, fileName.getPatientName());
+				}
+				else patientIDtoStudy.get(patientID).add(siuid);
+
 				Study study = table.get(siuid);
 				if (study == null) {
 					study = new Study(fileName);
@@ -87,26 +108,27 @@ public class StudyList implements ActionListener {
 		for (File file : files) addFiles(file);
 	}
 
-	public LinkedList<String> getPatients() {
-		for (Study study : getStudies()) {
-			if(!patients.contains(study.getPatientID())) {
-				patients.add(study.getPatientID());
-			}
-		}
-		return patients;
-	}
-
 	public void display(DirectoryPanel dp) {
-		getPatients();
-		for (Study study : getStudies()) {
-			String pn = study.getPatientID();
-			if (patients.contains(pn)) {
-				PatientName patientName = new PatientName(study.getPatientName() + " - " + pn);
-				dp.add(patientName, RowLayout.span(4));
-				dp.add(RowLayout.crlf());
-				patients.remove(patients.indexOf(pn));
+
+		boolean first = false;
+
+		for (String patient : patientIDtoStudy.keySet()) {
+
+			PatientName patientName = new PatientName(patient
+					+ " - " + patientIDtoPatientName.get(patient));
+			dp.add(patientName, RowLayout.span(4));
+			dp.add(RowLayout.crlf());
+
+			for (Study study : getStudies()) {
+				study.setStudyType(studyType);
+				if (patientIDtoStudy.get(patient).contains(study.getSiuid())) {
+					if (first == false) {
+						first = true;
+						firstStudy = study.getSiuid();
+					}
+					study.display(dp);
+				}
 			}
-			study.display(dp);
 		}
 	}
 

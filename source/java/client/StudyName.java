@@ -18,6 +18,7 @@ public class StudyName extends JButton {
 	String classification = "";
 	FileName fn = null;
 	LinkedList<String> modalities = null;
+	String frameInfo = "";
 
 	public StudyName(FileName fileName) {
 		super();
@@ -38,10 +39,20 @@ public class StudyName extends JButton {
 		updateName();
 	}
 
+	public void setFrameOfRefInfo() {
+		setForeground(Color.red);
+		frameInfo = " !FrameOfRef!";
+		updateName();
+	}
+
 	public void addSeriesModality(String modality) {
 		if (!modalities.contains(modality)) {
 			modalities.add(modality);
 		}
+	}
+
+	public String getClassification() {
+		return classification;
 	}
 
 	public void setClassification() {
@@ -74,12 +85,15 @@ public class StudyName extends JButton {
 	}
 
 	public void updateName() {
+		String desc = fn.getStudyDescription() + frameInfo;
 		name = String.format("%-16s", "[" + classification + "]")
-				+ " " +	String.format("%-31s", fn.getStudyDescription().substring(0,
-					Math.min(fn.getStudyDescription().length(), 31)))
+				+ " " +	String.format("%-31s", desc.substring(0,
+					Math.min(desc.length(), 31)))
 				+ " " + String.format("%-12s", "<Series=" + String.format("%03d", numberOfSeries) + ">")
 				+ " " + String.format("%-10s", "  STUDY")
 				+ " " + String.format("%-2s", fn.getStudyDate());
+
+				//+ " " + fn.getFrameOfReference();
 		setText(name);
 	}
 }

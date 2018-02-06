@@ -21,6 +21,7 @@ import org.rsna.ctp.stdstages.anonymizer.LookupTable;
 import org.rsna.ctp.stdstages.dicom.SimpleDicomStorageSCP;
 import org.rsna.server.HttpResponse;
 import org.rsna.ui.GeneralAuthenticator;
+import org.rsna.ui.RowLayout;
 import org.rsna.util.BrowserUtil;
 import org.rsna.util.FileUtil;
 import org.rsna.util.HttpUtil;
@@ -99,6 +100,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     String stowUsername = null;
     String stowPassword = null;
 
+    String studyType = "";
+
     public static void main(String[] args) {
 		Logger.getRootLogger().addAppender(
 				new ConsoleAppender(
@@ -153,6 +156,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		setTitle(config.getProperty("windowTitle"));
 		JPanel panel = new JPanel(new BorderLayout());
 		getContentPane().add(panel, BorderLayout.CENTER);
+
+		//Get the study type to crosscheck later on
+		studyType = config.getProperty("studyType");
 
 		//Set the SSL params
 		getKeystore();
@@ -343,7 +349,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				dp.clear();
 				dp.setDeleteOnSuccess(false);
 				studyList = new StudyList(dir, radioMode, anio, chkFiles.isSelected());
-				studyList.display(dp);
+				studyList.setStudyType(studyType);
+   				studyList.display(dp);
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);
 				sp.getVerticalScrollBar().setValue(0);
@@ -358,6 +365,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				dp.setDeleteOnSuccess(true);
 				studyList = new StudyList(scpDirectory, radioMode,
 						anio, chkFiles.isSelected());
+				studyList.setStudyType(studyType);
 				studyList.display(dp);
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);
@@ -396,6 +404,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 			instructionsFrame.setVisible(true);
 			this.requestFocus();
 		}
+
+
 	}
 
     private void setWaitCursor(boolean on) {

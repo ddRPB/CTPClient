@@ -59,6 +59,7 @@ public class SeriesName extends JButton {
                     + " " + String.format("%-10s", "SERIES")
                     + " " + String.format("%-2s", "  " + fn.getSeriesDate());
         }
+        //name += "    " + fn.getFrameOfReference();
         setText(name);
     }
 }

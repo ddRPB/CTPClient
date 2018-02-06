@@ -13,6 +13,8 @@ import java.util.*;
 
 import org.rsna.ui.RowLayout;
 
+import javax.swing.*;
+
 public class Study implements ActionListener, Comparable<Study> {
 
 	LinkedList<FileName> list = null;
@@ -23,6 +25,8 @@ public class Study implements ActionListener, Comparable<Study> {
 	String patientName = null;
 	String studyDate = null;
 	String patientID = null;
+	String siuid = null;
+	String studyType = "";
 	boolean showDicomFiles = false;
 	boolean seriesVisible = true;
 
@@ -36,6 +40,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		studyDate = fileName.getStudyDate();
 		studyName = new StudyName(fileName);
 		studyName.addActionListener(this);
+		siuid = fileName.getStudyInstanceUID();
 		add(fileName);
 	}
 
@@ -93,8 +98,16 @@ public class Study implements ActionListener, Comparable<Study> {
 		return cb;
 	}
 
+	public void setStudyType(String st) {
+		studyType = st;
+	}
+
 	public String getPatientName() {
 		return patientName;
+	}
+
+	public String getSiuid() {
+		return siuid;
 	}
 
 	public String getPatientID() { return patientID; }
@@ -176,6 +189,74 @@ public class Study implements ActionListener, Comparable<Study> {
 		}
 	}
 
+	public boolean checkFrameOfRef() {
+
+		String temp = "default";
+		boolean moreThanOne = true;
+		for (String k : seriesTable.keySet()) {
+		    if (!temp.equals(seriesTable.get(k).getFrameOfRef())) {
+				if(moreThanOne){
+					if (!seriesTable.get(k).getFrameOfRef().equals("")) {
+						temp = seriesTable.get(k).getFrameOfRef();
+						moreThanOne = false;
+					}
+				}
+				else if (!seriesTable.get(k).getFrameOfRef().equals("")) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	public boolean checkStudyType() {
+
+		if(!studyName.getClassification().equals(studyType)) {
+			return false;
+		}
+
+		if(studyType.equals("Contouring")) {
+			String ctSOPClassUID = "";
+			String rtstructRefSOPClassUID = "";
+			for(String k : seriesTable.keySet()) {
+				if(seriesTable.get(k).getSeriesName().getModality().equals("CT")){
+					ctSOPClassUID = seriesTable.get(k).getSOPClassUID();
+				}
+				if(seriesTable.get(k).getSeriesName().getModality().equals("RTSTRUCT")){
+					rtstructRefSOPClassUID = seriesTable.get(k).getRefSOPClassUID();
+				}
+			}
+			if(!ctSOPClassUID.equals(rtstructRefSOPClassUID)) {
+				return false;
+			}
+		}else if (studyType.equals("TreatmentPlan")) {
+            String rtplanRefStructSOPInst = "";
+            String rtplanRefDoseSOPInst = "";
+            String rtstructSOPInstanceUID = "";
+            String rtdoseSOPInstanceUID = "";
+		    for (String k : seriesTable.keySet()) {
+		    	if (seriesTable.get(k).getSeriesName().getModality().equals("RTPLAN")) {
+					rtplanRefStructSOPInst = seriesTable.get(k).getRefStructSOPInst();
+					rtplanRefDoseSOPInst = seriesTable.get(k).getRefDoseSOPInst();
+				}
+				if (seriesTable.get(k).getSeriesName().getModality().equals("RTSTRUCT")) {
+		    		rtstructSOPInstanceUID = seriesTable.get(k).getSOPInstanceUID();
+				}
+				if (seriesTable.get(k).getSeriesName().getModality().equals("RTDOSE")) {
+					rtdoseSOPInstanceUID = seriesTable.get(k).getSOPInstanceUID();
+				}
+            }
+
+            if (!rtplanRefStructSOPInst.equals(rtstructSOPInstanceUID) ||
+					!rtplanRefDoseSOPInst.equals(rtdoseSOPInstanceUID)) {
+            	return false;
+			}
+		}
+
+		return true;
+	}
+
 	public Series[] getSeries() {
 		Series[] series = new Series[seriesTable.size()];
 		series = seriesTable.values().toArray(series);
@@ -189,8 +270,19 @@ public class Study implements ActionListener, Comparable<Study> {
 		dp.add(cb);
 		studyName.setClassification();
 		studyName.setNumberOfSeries(seriesTable.size());
+		if (!checkFrameOfRef() && (studyName.getClassification().equals("TreatmentPlan") ||
+			studyName.getClassification().equals("Contouring"))) {
+			studyName.setFrameOfRefInfo();
+		}
+
+		if (!checkStudyType()) {
+			dp.add(new JLabel("studyType!!!"));
+			dp.add(RowLayout.crlf());
+		}
+
 		dp.add(studyName);
 		dp.add(RowLayout.crlf());
+
 		Set<String> keys = seriesTable.keySet();
 		for (String key : keys) {
 			seriesTable.get(key).display(dp);

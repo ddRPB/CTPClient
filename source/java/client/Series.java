@@ -13,6 +13,8 @@ import java.util.*;
 
 import org.rsna.ui.RowLayout;
 
+import javax.swing.*;
+
 public class Series implements ActionListener, Comparable<Series> {
 
     LinkedList<FileName> list = null;
@@ -23,6 +25,7 @@ public class Series implements ActionListener, Comparable<Series> {
     boolean showDicomFiles = false;
     FileName fn = null;
     boolean roisVisible = true;
+    String frameOfRef = null;
 
     public Series(FileName fileName) {
         fn = fileName;
@@ -33,6 +36,7 @@ public class Series implements ActionListener, Comparable<Series> {
         patientName = fileName.getPatientName();
         seriesName = new SeriesName(fileName);
         seriesName.addActionListener(this);
+        frameOfRef = fn.getFrameOfReference();
         add(fileName);
     }
 
@@ -82,9 +86,15 @@ public class Series implements ActionListener, Comparable<Series> {
         return 0;
     }
 
+    public String getSOPClassUID() {
+        return fn.getSOPClassUID();
+    }
+
     public SeriesCheckBox getCb() { return cb; }
 
     public String getPatientName() { return patientName; }
+
+    public String getFrameOfRef() { return frameOfRef; }
 
     public boolean isSelected() { return cb.isSelected(); }
 
@@ -134,6 +144,16 @@ public class Series implements ActionListener, Comparable<Series> {
         return null;
     }
 
+    public SeriesName getSeriesName() { return seriesName; }
+
+    public String getSOPInstanceUID() { return fn.getSOPInstanceUID(); }
+
+    public String getRefSOPClassUID() { return fn.getRefSOPClassUID(); }
+
+    public String getRefStructSOPInst() { return fn.getRefStructSOPInst(); }
+
+    public String getRefDoseSOPInst() { return fn.getRefDoseSOPInst(); }
+
     public FileName[] getFileNames() {
         FileName[] names = new FileName[list.size()];
         names = list.toArray(names);
@@ -159,6 +179,10 @@ public class Series implements ActionListener, Comparable<Series> {
         }
     }
 
+    public String getROIRefFrame(){
+        return list.getFirst().getROIRefFrameOfRef();
+    }
+
     public void display(DirectoryPanel dp) {
         dp.add(cb);
         seriesName.setNumberOfFiles(list.size());
@@ -166,10 +190,21 @@ public class Series implements ActionListener, Comparable<Series> {
         dp.add(RowLayout.crlf());
 
         if(seriesName.getModality().equals("RTSTRUCT")) {
-            generateROIs();
-            for (ROI r : roiList) {
-                r.display(dp);
+
+            if (list.getFirst().frameOfRefsOK()
+                    && list.getFirst().hasROIonlyOneRefFrameOfRefUID()) {
+                generateROIs();
+                for (ROI r : roiList) {
+                    r.display(dp);
+                }
             }
+            else {
+                dp.add(new JLabel("FRAME OF REF!!!"));
+                dp.add(RowLayout.crlf());
+            }
+
+
+
         }
 
         if(showDicomFiles) {

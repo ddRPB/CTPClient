@@ -11,6 +11,7 @@ import java.awt.*;
 import java.io.*;
 import java.util.LinkedList;
 import javax.swing.*;
+import javax.xml.crypto.Data;
 
 import org.dcm4che.data.Dataset;
 import org.dcm4che.data.DcmElement;
@@ -41,7 +42,16 @@ public class FileName implements Comparable<FileName> {
 
 	String studyDescription = "";
 	String seriesDescription = "";
+	String frameOfReference = "";
+	boolean oncentraCheck = false;
 
+	String CHECK = "untouched";
+	String refSOPClassUID = "";
+	String refStructSOPInst = "";
+	String refDoseSOPInst = "";
+
+	LinkedList<String> listRoiRefFrameOfRef = null;
+	LinkedList<String> listRefFrameOfRefFrameOfRefUID = null;
 	LinkedList<String> listROINames = null;
 	LinkedList<String> listROINumber = null;
 	LinkedList<String> listRefROINumber = null;
@@ -58,6 +68,8 @@ public class FileName implements Comparable<FileName> {
 		listRefROINumber = new LinkedList<String>();
 		listROIObservationLabel = new LinkedList<String>();
 		listROIInterpretedType = new LinkedList<String>();
+		listRoiRefFrameOfRef = new LinkedList<String>();
+		listRefFrameOfRefFrameOfRefUID = new LinkedList<String>();
 		statusText = new StatusText();
 		fileSize = new FileSize(file);
 		try {
@@ -78,6 +90,7 @@ public class FileName implements Comparable<FileName> {
 			instanceNumberInt = StringUtil.getInt(instanceNumber);
 
 			studyDescription = fixNull(dob.getStudyDescription());
+			frameOfReference = fixNull(dob.getElementValue(Tags.FrameOfReferenceUID));
 
 			//look for a precise description
 			if (modality.equals("RTDOSE")) {
@@ -89,6 +102,22 @@ public class FileName implements Comparable<FileName> {
                 if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.RTPlanName)); }
                 if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.RTPlanDescription)); }
 				seriesDate = fixDate(dob.getElementValue(Tags.RTPlanDate));
+
+				DcmElement refStructSet = dob.getDataset().get(Tags.RefStructureSetSeq);
+				if (refStructSet != null) {
+					for (int i = 0; i < refStructSet.countItems(); i++) {
+						Dataset dcm = refStructSet.getItem(i);
+						refStructSOPInst = dcm.getString(Tags.RefSOPInstanceUID);
+					}
+				}
+
+				DcmElement refDoseSeq = dob.getDataset().get(Tags.RefDoseSeq);
+				if (refDoseSeq != null) {
+					for (int i = 0; i < refDoseSeq.countItems(); i++) {
+						Dataset dcm = refDoseSeq.getItem(i);
+						refDoseSOPInst = dcm.getString(Tags.RefSOPInstanceUID);
+					}
+				}
 			}
 			else if (modality.equals("RTSTRUCT")) {
 				seriesDescription = fixNull(dob.getElementValue(Tags.StructureSetLabel));
@@ -102,6 +131,8 @@ public class FileName implements Comparable<FileName> {
 
 				if (seriesDescription.equals("")) { fixNull(dob.getElementValue(Tags.StructureSetDescription)); }
 				seriesDate = fixDate(dob.getElementValue(Tags.StructureSetDate));
+
+
 			}
 			else if (modality.equals("RTIMAGE")) {
 				seriesDescription = fixNull(dob.getElementValue(Tags.RTImageName));
@@ -113,18 +144,24 @@ public class FileName implements Comparable<FileName> {
 			if (seriesDescription.equals("")) { seriesDescription = fixNull(dob.getSeriesDescription()); }
 			if (seriesDate.equals("")) { seriesDate =  fixDate(dob.getElementValue(Tags.SeriesDate));}
 
-			//get ROI information
+
 			if(modality.equals("RTSTRUCT")) {
+				//get ROI information
 				DcmElement roiSequence = dob.getDataset().get(Tags.StructureSetROISeq);
-				DcmElement roiObservations = dob.getDataset().get(Tags.RTROIObservationsSeq);
 				if (roiSequence != null) {
 					for (int i = 0; i < roiSequence.countItems(); i++) {
 						Dataset dcm = roiSequence.getItem(i);
 						listROINames.add(dcm.getString(Tags.ROIName));
 						listROINumber.add(dcm.getString(Tags.ROINumber));
+
+						String temp = dcm.getString(Tags.RefFrameOfReferenceUID);
+						if (!listRoiRefFrameOfRef.contains(temp)) {
+							listRoiRefFrameOfRef.add(temp);
+						}
 					}
 				}
 
+				DcmElement roiObservations = dob.getDataset().get(Tags.RTROIObservationsSeq);
 				if (roiObservations != null) {
 					for (int i = 0; i < roiObservations.countItems(); i++) {
 						Dataset dcm = roiObservations.getItem(i);
@@ -133,9 +170,84 @@ public class FileName implements Comparable<FileName> {
 						listROIInterpretedType.add(fixNull(dcm.getString(Tags.RTROIInterpretedType)));
 					}
 				}
+
+				//handle Oncentra MasterPlan case for ReferenceCheck
+				// read all the referenced frameofrefs -> should only be one
+				// return it and compare it with the refs in the other files
+ 				DcmElement refFrameOfRef = dob.getDataset().get(Tags.RefFrameOfReferenceSeq);
+				if (refFrameOfRef != null) {
+					for (int i = 0; i < refFrameOfRef.countItems(); i++) {
+						Dataset dcm = refFrameOfRef.getItem(i);
+
+						listRefFrameOfRefFrameOfRefUID.add(dcm.getString(Tags.FrameOfReferenceUID));
+
+						DcmElement FrameOfReferenceRelationshipSeq = dcm.get(Tags.FrameOfReferenceRelationshipSeq);
+
+						if (FrameOfReferenceRelationshipSeq != null) {
+							CHECK = "touch";
+							for (int y = 0; y <  FrameOfReferenceRelationshipSeq.countItems(); y++) {
+								Dataset dataset = FrameOfReferenceRelationshipSeq.getItem(y);
+
+								String transformationComment =
+										dataset.getString(Tags.FrameOfReferenceTransformationComment);
+								if (transformationComment.equals("Treatment planning reference point")) {
+									oncentraCheck = true;
+								}
+							}
+						}
+					}
+				}
+
+				DcmElement roiContourSeq = dob.getDataset().get(Tags.ROIContourSeq);
+				if(roiContourSeq != null) {
+					for(int i = 0; i < roiContourSeq.countItems(); i++) {
+						Dataset dcm = roiContourSeq.getItem(i);
+						DcmElement contourSeq = dcm.get(Tags.ContourSeq);
+						for(int j = 0; j < contourSeq.countItems(); j++) {
+							Dataset dc = contourSeq.getItem(j);
+							DcmElement contourImageSeq = dc.get(Tags.ContourImageSeq);
+							for(int k = 0; k < contourImageSeq.countItems(); k++) {
+								Dataset d = contourImageSeq.getItem(k);
+								refSOPClassUID = d.getString(Tags.RefSOPClassUID);
+							}
+						}
+					}
+				}
 			}
 		}
 		catch (Exception nonDICOM) { }
+	}
+
+	public String getSOPInstanceUID() { return dob.getSOPInstanceUID(); }
+
+	public String getSOPClassUID() { return dob.getSOPClassUID(); }
+
+	public  String getRefSOPClassUID() { return refSOPClassUID; }
+
+	public String getRefStructSOPInst() { return refStructSOPInst; }
+
+	public String getRefDoseSOPInst() { return refDoseSOPInst; }
+
+	public boolean frameOfRefsOK() {
+
+		if (listRefFrameOfRefFrameOfRefUID.size() > 1 && oncentraCheck == false) {
+			return false;
+		}
+		return true;
+	}
+
+	public boolean hasROIonlyOneRefFrameOfRefUID() {
+		if (listRoiRefFrameOfRef.size() > 1) {
+			return false;
+		}
+		return true;
+	}
+
+	public String getROIRefFrameOfRef() {
+		if (listRoiRefFrameOfRef.size() == 1) {
+			return listRoiRefFrameOfRef.getFirst();
+		}
+		return null;
 	}
 
 	public LinkedList<String> getROINameList() { return listROINames; }
@@ -182,6 +294,10 @@ public class FileName implements Comparable<FileName> {
 
 	public String getStudyDescription(){
 		return studyDescription;
+	}
+
+	public  String getFrameOfReference(){
+		return frameOfReference;
 	}
 
 	public String getSeriesDescription() { return seriesDescription; }
