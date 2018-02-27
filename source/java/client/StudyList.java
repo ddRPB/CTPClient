@@ -9,7 +9,6 @@ package client;
 
 import org.rsna.ui.RowLayout;
 
-import javax.swing.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
@@ -29,6 +28,10 @@ public class StudyList implements ActionListener {
 
 	String firstStudy = null;
 	String studyType = "";
+	String gender = "";
+
+	boolean wrongStudyType = false;
+	boolean wrongReferences = false;
 
 	public StudyList(File directory, boolean radioMode,
 					 boolean acceptNonImageObjects, boolean showDicomFiles) {
@@ -56,7 +59,6 @@ public class StudyList implements ActionListener {
 	public void selectFirstStudy() {
 		if (table.size() > 0) {
 			deselectAll();
-			//table.get(patientIDtoStudy.get(patientIDtoStudy.keys().nextElement()).getFirst()).setSelected(true);
 			table.get(firstStudy).setSelected(true);
 		}
 	}
@@ -67,8 +69,16 @@ public class StudyList implements ActionListener {
 		}
 	}
 
-	public void setStudyType(String st) {
+	public void setRequiredStudyType(String st) {
 		studyType = st;
+	}
+
+	public void setGender(String st) {
+		gender = st;
+	}
+
+	public String getGender() {
+		return gender;
 	}
 
 	public Study[] getStudies() {
@@ -120,13 +130,15 @@ public class StudyList implements ActionListener {
 			dp.add(RowLayout.crlf());
 
 			for (Study study : getStudies()) {
-				study.setStudyType(studyType);
+				study.setRequiredStudyType(studyType);
 				if (patientIDtoStudy.get(patient).contains(study.getSiuid())) {
 					if (first == false) {
 						first = true;
 						firstStudy = study.getSiuid();
 					}
 					study.display(dp);
+					wrongStudyType = study.isStudyTypeWrong();
+					wrongReferences = study.isReferenceWrong();
 				}
 			}
 		}

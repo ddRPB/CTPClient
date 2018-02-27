@@ -21,7 +21,6 @@ import org.rsna.ctp.stdstages.anonymizer.LookupTable;
 import org.rsna.ctp.stdstages.dicom.SimpleDicomStorageSCP;
 import org.rsna.server.HttpResponse;
 import org.rsna.ui.GeneralAuthenticator;
-import org.rsna.ui.RowLayout;
 import org.rsna.util.BrowserUtil;
 import org.rsna.util.FileUtil;
 import org.rsna.util.HttpUtil;
@@ -52,6 +51,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     FieldButton showMemoryButton = null;
     FieldButton showLogButton = null;
     FieldButton instructionsButton = null;
+    FieldButton changeStudyDescriptionButton = null;
     int instructionsWidth = 425;
 
     AttachedFrame instructionsFrame = null;
@@ -64,6 +64,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     boolean showURL = true;
     boolean showDialogButton = true;
     boolean showBrowseButton = true;
+    boolean showChangeStudyDescriptionButton = true;
 
     boolean zip = false;
     boolean setBurnedInAnnotation = false;
@@ -100,7 +101,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     String stowUsername = null;
     String stowPassword = null;
 
-    String studyType = "";
+    String studyType = null;
+    String gender = null;
+
+	String oldStudyDescription = null;
+	String newStudyDescription = null;
 
     public static void main(String[] args) {
 		Logger.getRootLogger().addAppender(
@@ -137,6 +142,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
 		//Get the DICOM export URL
 		dicomURL = config.getProperty("dicomURL", "");
+
+		//Get the gender of the patient to crosscheck
+		gender = config.getProperty("gender");
 
 		//Get the DICOM STOWRS export parameters
 		stowURL = config.getProperty("stowURL", "");
@@ -204,9 +212,14 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		helpButton = new FieldButton("Help");
 		helpButton.setEnabled(true);
 		helpButton.addActionListener(this);
+
 		startButton = new FieldButton("Start");
 		startButton.setEnabled(false);
 		startButton.addActionListener(this);
+
+		changeStudyDescriptionButton = new FieldButton("Change Study Description");
+		changeStudyDescriptionButton.setEnabled(false);
+        changeStudyDescriptionButton.addActionListener(this);
 
 		//Make the header panel
 		JPanel header = new JPanel();
@@ -255,6 +268,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		if (scpPort > 0) {
 			buttonBox.add(scpButton);
 		}
+
+		if (showChangeStudyDescriptionButton) {
+		    buttonBox.add(Box.createHorizontalStrut(20));
+            buttonBox.add(changeStudyDescriptionButton);
+        }
 
 		helpURL = config.getProperty("helpURL", "").trim();
 		if (!helpURL.equals("")) {
@@ -349,10 +367,20 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				dp.clear();
 				dp.setDeleteOnSuccess(false);
 				studyList = new StudyList(dir, radioMode, anio, chkFiles.isSelected());
-				studyList.setStudyType(studyType);
+				studyList.setRequiredStudyType(studyType);
+				studyList.setGender(gender);
    				studyList.display(dp);
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);
+				changeStudyDescriptionButton.setEnabled(true);
+				if (studyList.wrongStudyType) {
+					startButton.setEnabled(false);
+					showSelectionInfo("studyType");
+				}
+				if (studyList.wrongReferences) {
+					startButton.setEnabled(false);
+					showSelectionInfo("references");
+				}
 				sp.getVerticalScrollBar().setValue(0);
 				setWaitCursor(false);
 			}
@@ -365,10 +393,20 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				dp.setDeleteOnSuccess(true);
 				studyList = new StudyList(scpDirectory, radioMode,
 						anio, chkFiles.isSelected());
-				studyList.setStudyType(studyType);
+				studyList.setRequiredStudyType(studyType);
+				studyList.setGender(gender);
 				studyList.display(dp);
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);
+				changeStudyDescriptionButton.setEnabled(true);
+				if (studyList.wrongStudyType) {
+					startButton.setEnabled(false);
+					showSelectionInfo("studyType");
+				}
+				if (studyList.wrongReferences) {
+					startButton.setEnabled(false);
+					showSelectionInfo("references");
+				}
 				sp.getVerticalScrollBar().setValue(0);
 				setWaitCursor(false);
 			}
@@ -404,7 +442,44 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 			instructionsFrame.setVisible(true);
 			this.requestFocus();
 		}
+        else if (source.equals(changeStudyDescriptionButton)) {
 
+		    // get selected study
+            // show study description
+            Study[] studies = studyList.getStudies();
+            Study selectedStudy = null;
+            int numberOfSelectedStudies = 0;
+            for (Study study : studies) {
+                if (study.isSelected()) {
+					numberOfSelectedStudies++;
+					oldStudyDescription = study.studyName.fn.getStudyDescription();
+					selectedStudy = study;
+				}
+
+            }
+            if (numberOfSelectedStudies != 1) {
+                final JFrame parent = this;
+                Runnable enable = new Runnable() {
+
+                    public void run() {
+                        JOptionPane.showMessageDialog(parent,
+                                "You have to select exactly one study in order to proceed.",
+                                "Information", JOptionPane.WARNING_MESSAGE);
+                    }
+                };
+                SwingUtilities.invokeLater(enable);
+            }
+            else {
+            	final JFrame parent = this;
+				Object selection = JOptionPane.showInputDialog(parent, "old study description: " + oldStudyDescription +
+								"\nnew study Description: ",
+						"New Study Description", JOptionPane.QUESTION_MESSAGE, null, null, newStudyDescription);
+                if (selection != null) {
+                    newStudyDescription = selection.toString();
+                    selectedStudy.updateStudyDescription(newStudyDescription);
+                }
+            }
+        }
 
 	}
 
@@ -510,26 +585,18 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		sending = false;
 		final JFrame parent = this;
 		Runnable enable = new Runnable() {
+
+
 			public void run() {
 				scpButton.setEnabled(true);
 				browseButton.setEnabled(true);
 				dialogButton.setEnabled(true);
 				startButton.setEnabled(true);
-				int result = JOptionPane.showOptionDialog(
-					parent,
-					"The selected images have been processed.\n\n"
-					+"If you want to process more images, click YES.\n"
-					+"If you want to exit the program, click NO.\n\n",
-					"Processing Complete",
-					JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE,
-					null, //icon
-					null, //options
-					null); //initialValue
-				if (result == JOptionPane.NO_OPTION) {
-					WindowEvent wev = new WindowEvent(parent, WindowEvent.WINDOW_CLOSING);
-					Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(wev);
-				}
+				JOptionPane.showMessageDialog(parent,
+						"The selected images have been processed..",
+						"Processing Complete", JOptionPane.INFORMATION_MESSAGE);
+				WindowEvent wev = new WindowEvent(parent, WindowEvent.WINDOW_CLOSING);
+				Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(wev);
 			}
 		};
 		SwingUtilities.invokeLater(enable);
@@ -546,6 +613,68 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 startButton.setEnabled(true);
 				JOptionPane.showMessageDialog(parent,
 						"You have to select at least one study in order to proceed.",
+						"Information", JOptionPane.WARNING_MESSAGE);
+			}
+		};
+		sending = false;
+		SwingUtilities.invokeLater(enable);
+	}
+
+	public void showSelectionInfo(String infoType) {
+		final JFrame parent = this;
+
+		if (infoType.equals("studyType")) {
+			Runnable enable = new Runnable() {
+				public void run() {
+					JOptionPane.showMessageDialog(parent,
+							"The files do not comply with the required study type.\n" +
+									"Please choose another study.",
+							"Information", JOptionPane.WARNING_MESSAGE);
+				}
+			};
+			SwingUtilities.invokeLater(enable);
+		}
+		else if (infoType.equals("references")) {
+			Runnable enable = new Runnable() {
+				public void run() {
+					JOptionPane.showMessageDialog(parent,
+							"The files do not refer to each other (in relation to the required study type).\n" +
+									"Please choose another study.",
+							"Information", JOptionPane.WARNING_MESSAGE);
+				}
+			};
+			SwingUtilities.invokeLater(enable);
+		}
+		else {
+			Runnable enable = new Runnable() {
+				public void run() {
+					JOptionPane.showMessageDialog(parent,
+							"Unknown Error.",
+							"Information", JOptionPane.WARNING_MESSAGE);
+				}
+			};
+			SwingUtilities.invokeLater(enable);
+		}
+	}
+
+	public boolean checkGender() {
+    	if (gender == null) {
+    		return false;
+		}
+		return true;
+	}
+
+	public void showGenderWarning() {
+		final JFrame parent = this;
+		Runnable enable = new Runnable() {
+
+			public void run() {
+				scpButton.setEnabled(true);
+				browseButton.setEnabled(true);
+				dialogButton.setEnabled(true);
+				startButton.setEnabled(true);
+				JOptionPane.showMessageDialog(parent,
+						"You have selected files with a gender unequal to the requested one.",
 						"Information", JOptionPane.WARNING_MESSAGE);
 			}
 		};
@@ -859,7 +988,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 			if (scp != null) scp.stop();
 
 			//Offer to save the idTable if it isn't empty
-			idTable.save(parent);
+			//idTable.save(parent);
 
 			//Offer to save the log if it isn't empty
 			Log.getInstance().save(parent);
@@ -871,12 +1000,16 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private void centerFrame() {
         Toolkit t = getToolkit();
         Dimension scr = t.getScreenSize ();
-        int thisWidth = 2*(scr.width - instructionsWidth)/3;
-        int thisHeight = scr.height/2;
-        int totalWidth = thisWidth + instructionsWidth;
+        //int thisWidth = 2*(scr.width - instructionsWidth)/3;
+		int thisWidth = scr.width;
+		if (scr.width >= 960) {
+        	thisWidth = 960;
+		}
+        Insets scnMax = Toolkit.getDefaultToolkit().getScreenInsets(getGraphicsConfiguration());
+        int taskBarSize = scnMax.bottom;
+        int thisHeight = scr.height - taskBarSize;
         setSize(thisWidth, thisHeight);
-        setLocation (new Point ((scr.width -totalWidth)/2,
-                                (scr.height - thisHeight)/2));
+        setLocation(new Point(0, 0));
     }
 
 	//UI components

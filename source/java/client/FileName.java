@@ -45,7 +45,6 @@ public class FileName implements Comparable<FileName> {
 	String frameOfReference = "";
 	boolean oncentraCheck = false;
 
-	String CHECK = "untouched";
 	String refSOPClassUID = "";
 	String refStructSOPInst = "";
 	String refDoseSOPInst = "";
@@ -184,7 +183,6 @@ public class FileName implements Comparable<FileName> {
 						DcmElement FrameOfReferenceRelationshipSeq = dcm.get(Tags.FrameOfReferenceRelationshipSeq);
 
 						if (FrameOfReferenceRelationshipSeq != null) {
-							CHECK = "touch";
 							for (int y = 0; y <  FrameOfReferenceRelationshipSeq.countItems(); y++) {
 								Dataset dataset = FrameOfReferenceRelationshipSeq.getItem(y);
 
@@ -227,6 +225,8 @@ public class FileName implements Comparable<FileName> {
 	public String getRefStructSOPInst() { return refStructSOPInst; }
 
 	public String getRefDoseSOPInst() { return refDoseSOPInst; }
+
+	public String getPatientGender () { return  dob.getElementValue(Tags.PatientSex); }
 
 	public boolean frameOfRefsOK() {
 

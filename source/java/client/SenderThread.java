@@ -11,6 +11,11 @@ import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+
+import org.dcm4che.data.DcmElement;
+import org.dcm4che.dict.TagDictionary;
+import org.dcm4che.dict.Tags;
+import org.dcm4che.dict.VRs;
 import org.rsna.ctp.objects.*;
 import org.rsna.ctp.pipeline.Status;
 import org.rsna.ctp.stdstages.anonymizer.AnonymizerStatus;
@@ -24,6 +29,10 @@ import org.rsna.ctp.stdstages.anonymizer.IntegerTable;
 import org.rsna.ctp.stdstages.dicom.DicomStorageSCU;
 import org.rsna.server.*;
 import org.rsna.util.*;
+
+import org.dcm4che.dict.DictionaryFactory;
+
+import javax.swing.*;
 
 public class SenderThread extends Thread {
 
@@ -62,6 +71,10 @@ public class SenderThread extends Thread {
 	static final String JPEGBaseline = "1.2.840.10008.1.2.4.50";
 	static final long maxUnchunked = 20 * 1024 * 1024;
 
+
+	static final DictionaryFactory dFact = DictionaryFactory.getInstance();
+	static final TagDictionary tagDictionary = dFact.getDefaultTagDictionary();
+
     public SenderThread (CTPClient parent) {
 		super("SenderThread");
 		this.studyList = parent.getStudyList();
@@ -81,7 +94,7 @@ public class SenderThread extends Thread {
 		this.exportDirectory = parent.getExportDirectory();
 		this.renameFiles = parent.getRenameFiles();
 		this.parent = parent;
-	
+
 		this.stowURLString = parent.getSTOWURL();
 		this.username = parent.getSTOWUsername();
 		this.password = parent.getSTOWPassword();
@@ -97,6 +110,7 @@ public class SenderThread extends Thread {
 		LinkedList<FileName> fileNames = new LinkedList<FileName>();
 		Study[] studies = studyList.getStudies();
 		boolean isStudySelected = false;
+		boolean genderCheck = true;
 		for (Study study : studies) {
 			if (study.isSelected()) isStudySelected = true;
 			Series[] series = study.getSeries();
@@ -104,7 +118,12 @@ public class SenderThread extends Thread {
 				if (s.isSelected()) {
 					FileName[] names = s.getFileNames();
 					for (FileName name : names) {
-						if (name.isSelected()) fileNames.add(name);
+						if (name.isSelected()) {
+							if (!name.getPatientGender().equals(studyList.getGender())) {
+								genderCheck = false;
+							}
+							fileNames.add(name);
+						}
 					}
 				}
 			}
@@ -113,6 +132,13 @@ public class SenderThread extends Thread {
 		if (!isStudySelected) {
 			parent.abortTransmission();
 			return;
+		}
+
+		if (parent.checkGender()) {
+			if (!genderCheck) {
+				parent.showGenderWarning();
+				return;
+			}
 		}
 
 		if ((dicomURLString != null) && !dicomURLString.equals("") && (fileNames.size() > 0)) {
@@ -151,6 +177,24 @@ public class SenderThread extends Thread {
 							//This returns a new DicomObject in the temp directory.
 							//The original object is left unmodified.
 							dob = anonymize(dob, fileStatus);
+
+							//change study description if required
+							if (parent.newStudyDescription != null) {
+								// Ugly but effective - write study description to dicom file
+								dob = new DicomObject(dob.getFile(), true);
+								File dobFile = dob.getFile();
+								dob.setElementValue(Tags.StudyDescription, parent.newStudyDescription);
+								//Save the modified object
+								File tFile = File.createTempFile("TMP-", ".dcm", dobFile.getParentFile());
+								dob.saveAs(tFile, false);
+								dob.close();
+								dobFile.delete();
+
+								//Okay, we have saved the modified file in the temp file
+								//and deleted the original file; now rename the temp file
+								//to the original name so nobody is the wiser.
+								tFile.renameTo(dobFile);
+							}
 
 							//If all went well, update the idTable and export
 							if (dob != null) {

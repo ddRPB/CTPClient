@@ -26,9 +26,13 @@ public class Study implements ActionListener, Comparable<Study> {
 	String studyDate = null;
 	String patientID = null;
 	String siuid = null;
-	String studyType = "";
+	String requiredStudyType = "";
+	String gender = "";
+	String checkGender = "";
 	boolean showDicomFiles = false;
 	boolean seriesVisible = true;
+	boolean wrongStudyType = false;
+	boolean wrongReferences = false;
 
 	public Study(FileName fileName) {
 		list = new LinkedList<FileName>();
@@ -98,9 +102,14 @@ public class Study implements ActionListener, Comparable<Study> {
 		return cb;
 	}
 
-	public void setStudyType(String st) {
-		studyType = st;
+	public void setRequiredStudyType(String st) {
+		requiredStudyType = st;
 	}
+
+	public void setGender(String st) {
+		gender = st;
+	}
+
 
 	public String getPatientName() {
 		return patientName;
@@ -124,6 +133,10 @@ public class Study implements ActionListener, Comparable<Study> {
 		cb.setSelected(selected);
 		if (selected) selectAll();
 		else deselectAll();
+	}
+
+	public void updateStudyDescription(String studyDescription) {
+		studyName.changeDisplayedStudyDescription(studyDescription);
 	}
 
 	public void selectAll() {
@@ -210,13 +223,18 @@ public class Study implements ActionListener, Comparable<Study> {
 		return true;
 	}
 
+	public boolean isStudyTypeWrong() { return wrongStudyType; }
+
+	public boolean isReferenceWrong() { return wrongReferences; }
+
 	public boolean checkStudyType() {
 
-		if(!studyName.getClassification().equals(studyType)) {
-			return false;
+		if(!studyName.getClassification().equals(requiredStudyType)) {
+			wrongStudyType = true;
+			//return false;
 		}
 
-		if(studyType.equals("Contouring")) {
+		if(requiredStudyType.equals("Contouring")) {
 			String ctSOPClassUID = "";
 			String rtstructRefSOPClassUID = "";
 			for(String k : seriesTable.keySet()) {
@@ -228,9 +246,10 @@ public class Study implements ActionListener, Comparable<Study> {
 				}
 			}
 			if(!ctSOPClassUID.equals(rtstructRefSOPClassUID)) {
-				return false;
+				wrongReferences = true;
+				//return false;
 			}
-		}else if (studyType.equals("TreatmentPlan")) {
+		}else if (requiredStudyType.equals("TreatmentPlan")) {
             String rtplanRefStructSOPInst = "";
             String rtplanRefDoseSOPInst = "";
             String rtstructSOPInstanceUID = "";
@@ -250,7 +269,8 @@ public class Study implements ActionListener, Comparable<Study> {
 
             if (!rtplanRefStructSOPInst.equals(rtstructSOPInstanceUID) ||
 					!rtplanRefDoseSOPInst.equals(rtdoseSOPInstanceUID)) {
-            	return false;
+				wrongReferences = true;
+		    	//return false;
 			}
 		}
 
@@ -275,10 +295,7 @@ public class Study implements ActionListener, Comparable<Study> {
 			studyName.setFrameOfRefInfo();
 		}
 
-		if (!checkStudyType()) {
-			dp.add(new JLabel("studyType!!!"));
-			dp.add(RowLayout.crlf());
-		}
+		checkStudyType();
 
 		dp.add(studyName);
 		dp.add(RowLayout.crlf());

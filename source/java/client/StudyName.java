@@ -19,10 +19,12 @@ public class StudyName extends JButton {
 	FileName fn = null;
 	LinkedList<String> modalities = null;
 	String frameInfo = "";
+	String studyDescription = null;
 
 	public StudyName(FileName fileName) {
 		super();
 		fn = fileName;
+		studyDescription = fn.getStudyDescription();
 		updateName();
 		setFont( new Font( "Monospaced", Font.BOLD, 17 ) );
 		setForeground( Color.blue );
@@ -32,6 +34,11 @@ public class StudyName extends JButton {
 		setContentAreaFilled(false);
 		setFocusPainted(false);
 		modalities = new LinkedList<String>();
+	}
+
+	public void changeDisplayedStudyDescription (String nsd) {
+		studyDescription = nsd;
+		updateName();
 	}
 
 	public void setNumberOfSeries(int i) {
@@ -85,7 +92,7 @@ public class StudyName extends JButton {
 	}
 
 	public void updateName() {
-		String desc = fn.getStudyDescription() + frameInfo;
+		String desc = studyDescription + frameInfo;
 		name = String.format("%-16s", "[" + classification + "]")
 				+ " " +	String.format("%-31s", desc.substring(0,
 					Math.min(desc.length(), 31)))
