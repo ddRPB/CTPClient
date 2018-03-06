@@ -1,9 +1,9 @@
 /*---------------------------------------------------------------
-*  Copyright 2014 by the Radiological Society of North America
-*
-*  This source software is released under the terms of the
-*  RSNA Public License (http://mirc.rsna.org/rsnapubliclicense)
-*----------------------------------------------------------------*/
+ *  Copyright 2014 by the Radiological Society of North America
+ *
+ *  This source software is released under the terms of the
+ *  RSNA Public License (http://mirc.rsna.org/rsnapubliclicense)
+ *----------------------------------------------------------------*/
 
 package client;
 
@@ -20,12 +20,12 @@ public class Series implements ActionListener, Comparable<Series> {
     private final LinkedList<FileName> list;
     private final LinkedList<ROI> roiList;
     private final SeriesCheckBox cb;
-    final SeriesName seriesName;
+    private final SeriesName seriesName;
     private final String patientName;
-    private boolean showDicomFiles = false;
     private final FileName fn;
-    private boolean roisVisible = true;
     private final String frameOfRef;
+    private boolean showDicomFiles = false;
+    private boolean roisVisible = true;
 
     public Series(FileName fileName) {
         fn = fileName;
@@ -57,15 +57,12 @@ public class Series implements ActionListener, Comparable<Series> {
                     if (ctrl) dp.setRowVisible(cb, false);
                 }
             }
-        }
-        else if (source.equals(seriesName)) {
+        } else if (source.equals(seriesName)) {
             if (seriesName.getModality().equals("RTSTRUCT") && roisVisible) {
                 hideROIs(false);
-            }
-            else if (seriesName.getModality().equals("RTSTRUCT") && !roisVisible) {
+            } else if (seriesName.getModality().equals("RTSTRUCT") && !roisVisible) {
                 hideROIs(true);
-            }
-            else {
+            } else {
                 cb.doClick();
             }
         }
@@ -73,7 +70,7 @@ public class Series implements ActionListener, Comparable<Series> {
 
     public void hideROIs(boolean hide) {
         DirectoryPanel dp = getDirectoryPanel();
-        for(ROI r : roiList) {
+        for (ROI r : roiList) {
             if (dp != null) dp.setRowVisible(r.getCheckBox(), hide);
             roisVisible = hide;
         }
@@ -84,9 +81,9 @@ public class Series implements ActionListener, Comparable<Series> {
     }
 
     public int compareTo(Series series) {
-        if (series == null)  return 0;
+        if (series == null) return 0;
         int c;
-        if ( (c = this.patientName.compareTo(series.getPatientName())) != 0 ) return c;
+        if ((c = this.patientName.compareTo(series.getPatientName())) != 0) return c;
         return 0;
     }
 
@@ -94,22 +91,38 @@ public class Series implements ActionListener, Comparable<Series> {
         return fn.getSOPClassUID();
     }
 
-    public SeriesCheckBox getCb() { return cb; }
+    public SeriesCheckBox getCb() {
+        return cb;
+    }
 
-    private String getPatientName() { return patientName; }
+    private String getPatientName() {
+        return patientName;
+    }
 
-    public String getFrameOfRef() { return frameOfRef; }
+    public String getFrameOfRef() {
+        return frameOfRef;
+    }
 
-    public boolean isSelected() { return cb.isSelected(); }
+    public String getSeriesInstanceUID() {
+        return seriesName.getSeriesInstanceUID();
+    }
 
-    public void showDicomFiles(boolean s) {
-        showDicomFiles = s;
+    public String getSeriesDescription() {
+        return seriesName.getSeriesDescription();
+    }
+
+    public boolean isSelected() {
+        return cb.isSelected();
     }
 
     public void setSelected(boolean selected) {
         cb.setSelected(selected);
-        if(selected) selectAll();
+        if (selected) selectAll();
         else deselectAll();
+    }
+
+    public void showDicomFiles(boolean s) {
+        showDicomFiles = s;
     }
 
     private void selectAll() {
@@ -118,7 +131,7 @@ public class Series implements ActionListener, Comparable<Series> {
             fn.setSelected(true);
             if (dp != null) dp.setRowVisible(fn.getCheckBox(), true);
         }
-        for(ROI r : roiList) {
+        for (ROI r : roiList) {
 
             r.setSelected(true);
             if (dp != null) dp.setRowVisible(r.getCheckBox(), true);
@@ -132,7 +145,7 @@ public class Series implements ActionListener, Comparable<Series> {
             fn.setSelected(false);
             if (dp != null) dp.setRowVisible(fn.getCheckBox(), false);
         }
-        for(ROI r : roiList) {
+        for (ROI r : roiList) {
 
             r.setSelected(false);
             if (dp != null) dp.setRowVisible(r.getCheckBox(), false);
@@ -143,20 +156,30 @@ public class Series implements ActionListener, Comparable<Series> {
     private DirectoryPanel getDirectoryPanel() {
         Component container = cb.getParent();
         if ((container != null) && (container instanceof DirectoryPanel)) {
-            return (DirectoryPanel)container;
+            return (DirectoryPanel) container;
         }
         return null;
     }
 
-    public SeriesName getSeriesName() { return seriesName; }
+    public SeriesName getSeriesName() {
+        return seriesName;
+    }
 
-    public String getSOPInstanceUID() { return fn.getSOPInstanceUID(); }
+    public String getSOPInstanceUID() {
+        return fn.getSOPInstanceUID();
+    }
 
-    public String getRefSOPClassUID() { return fn.getRefSOPClassUID(); }
+    public String getRefSOPClassUID() {
+        return fn.getRefSOPClassUID();
+    }
 
-    public String getRefStructSOPInst() { return fn.getRefStructSOPInst(); }
+    public String getRefStructSOPInst() {
+        return fn.getRefStructSOPInst();
+    }
 
-    public String getRefDoseSOPInst() { return fn.getRefDoseSOPInst(); }
+    public String getRefDoseSOPInst() {
+        return fn.getRefDoseSOPInst();
+    }
 
     public FileName[] getFileNames() {
         FileName[] names = new FileName[list.size()];
@@ -168,7 +191,7 @@ public class Series implements ActionListener, Comparable<Series> {
     private void generateROIs() {
         int i = 0;
         String ObsLabel = "", RoiType = "";
-        for(String name : fn.getROINameList()) {
+        for (String name : fn.getROINameList()) {
 
             for (String RefRoiNumber : fn.getRefROINumberList()) {
                 if (RefRoiNumber.equals(fn.getROINumberList().get(i))) {
@@ -177,13 +200,12 @@ public class Series implements ActionListener, Comparable<Series> {
                     break;
                 }
             }
-
             roiList.add(new ROI(name, fn.getROINumberList().get(i), ObsLabel, RoiType));
             i++;
         }
     }
 
-    public String getROIRefFrame(){
+    public String getROIRefFrame() {
         return list.getFirst().getROIRefFrameOfRef();
     }
 
@@ -193,7 +215,7 @@ public class Series implements ActionListener, Comparable<Series> {
         dp.add(seriesName, RowLayout.span(4));
         dp.add(RowLayout.crlf());
 
-        if(seriesName.getModality().equals("RTSTRUCT")) {
+        if (seriesName.getModality().equals("RTSTRUCT")) {
 
             if (list.getFirst().frameOfRefsOK()
                     && list.getFirst().hasROIonlyOneRefFrameOfRefUID()) {
@@ -201,17 +223,13 @@ public class Series implements ActionListener, Comparable<Series> {
                 for (ROI r : roiList) {
                     r.display(dp);
                 }
-            }
-            else {
+            } else {
                 dp.add(new JLabel("FRAME OF REF!!!"));
                 dp.add(RowLayout.crlf());
             }
-
-
-
         }
 
-        if(showDicomFiles) {
+        if (showDicomFiles) {
             for (FileName fn : getFileNames()) {
                 fn.display(dp);
             }

@@ -1,19 +1,19 @@
 package client;
 
-import org.rsna.ui.RowLayout;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
 
-public class ROI implements ActionListener{
+import org.rsna.ui.RowLayout;
+
+public class ROI implements ActionListener {
 
     private final ROICheckBox cb;
     private final ROIName rname;
     private final LinkedList<FileName> list;
 
-    public ROI(String name, String numberAsString, String ObsLabel, String RoiType){
+    public ROI(String name, String numberAsString, String ObsLabel, String RoiType) {
         cb = new ROICheckBox();
         list = new LinkedList<FileName>();
 
@@ -25,8 +25,7 @@ public class ROI implements ActionListener{
                 description += " - " + RoiType;
             }
             description += ")";
-        }
-        else if (!RoiType.equals("")) {
+        } else if (!RoiType.equals("")) {
             description += " (" + RoiType + ")";
         }
 
@@ -48,8 +47,7 @@ public class ROI implements ActionListener{
                     if (ctrl) dp.setRowVisible(cb, false);
                 }
             }
-        }
-        else if (source.equals(rname)) {
+        } else if (source.equals(rname)) {
             cb.doClick();
         }
     }
@@ -62,20 +60,18 @@ public class ROI implements ActionListener{
         DirectoryPanel dp = getDirectoryPanel();
         for (FileName fn : list) {
             fn.setSelected(true);
-            if (dp != null){
+            if (dp != null) {
                 dp.setRowVisible(fn.getCheckBox(), true);
                 dp.setRowVisible(cb, true);
             }
-
         }
     }
 
-    public  void setSelected(boolean selected) {
+    public void setSelected(boolean selected) {
         cb.setSelected(selected);
-        if(selected) {
+        if (selected) {
             selectAll();
-        }
-        else{
+        } else {
             deselectAll();
         }
     }
@@ -84,7 +80,7 @@ public class ROI implements ActionListener{
         DirectoryPanel dp = getDirectoryPanel();
         for (FileName fn : list) {
             fn.setSelected(false);
-            if (dp != null){
+            if (dp != null) {
                 dp.setRowVisible(fn.getCheckBox(), false);
                 dp.setRowVisible(cb, false);
             }
@@ -94,17 +90,14 @@ public class ROI implements ActionListener{
     private DirectoryPanel getDirectoryPanel() {
         Component container = cb.getParent();
         if ((container != null) && (container instanceof DirectoryPanel)) {
-            return (DirectoryPanel)container;
+            return (DirectoryPanel) container;
         }
         return null;
     }
 
     public void display(DirectoryPanel dp) {
-
         dp.add(cb);
         dp.add(rname, RowLayout.span(4));
         dp.add(RowLayout.crlf());
     }
-
-
 }

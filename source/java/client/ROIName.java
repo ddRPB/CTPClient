@@ -3,7 +3,7 @@ package client;
 import javax.swing.*;
 import java.awt.*;
 
-public class ROIName extends JButton{
+public class ROIName extends JButton {
 
     private final String name;
 
@@ -11,8 +11,8 @@ public class ROIName extends JButton{
         super();
         name = roiName;
         updateName();
-        setFont( new Font( "Monospaced", Font.BOLD, 14 ) );
-        setForeground( Color.blue );
+        setFont(new Font("Monospaced", Font.BOLD, 14));
+        setForeground(Color.blue);
         setBorder(BorderFactory.createEmptyBorder());
         setBorderPainted(false);
         setMargin(new Insets(0, 0, 0, 0));
