@@ -13,13 +13,12 @@ import javax.swing.*;
 
 public class StudyName extends JButton {
 
-	int numberOfSeries = 0;
-	String name = "";
-	String classification = "";
-	FileName fn = null;
-	LinkedList<String> modalities = null;
-	String frameInfo = "";
-	String studyDescription = null;
+	private int numberOfSeries = 0;
+	private String classification = "";
+	final FileName fn;
+	private final LinkedList<String> modalities;
+	private String frameInfo = "";
+	private String studyDescription;
 
 	public StudyName(FileName fileName) {
 		super();
@@ -91,11 +90,11 @@ public class StudyName extends JButton {
 		updateName();
 	}
 
-	public void updateName() {
+	private void updateName() {
 		String desc = studyDescription + frameInfo;
-		name = String.format("%-16s", "[" + classification + "]")
-				+ " " +	String.format("%-31s", desc.substring(0,
-					Math.min(desc.length(), 31)))
+		String name = String.format("%-16s", "[" + classification + "]")
+				+ " " + String.format("%-31s", desc.substring(0,
+				Math.min(desc.length(), 31)))
 				+ " " + String.format("%-12s", "<Series=" + String.format("%03d", numberOfSeries) + ">")
 				+ " " + String.format("%-10s", "  STUDY")
 				+ " " + String.format("%-2s", fn.getStudyDate());

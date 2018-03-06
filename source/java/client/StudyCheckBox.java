@@ -12,7 +12,7 @@ import javax.swing.*;
 
 public class StudyCheckBox extends JCheckBox {
 
-	Study study = null;
+	private Study study = null;
 
 	public StudyCheckBox() {
 		super();

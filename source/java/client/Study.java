@@ -13,26 +13,20 @@ import java.util.*;
 
 import org.rsna.ui.RowLayout;
 
-import javax.swing.*;
-
 public class Study implements ActionListener, Comparable<Study> {
 
-	LinkedList<FileName> list = null;
-	LinkedList<SeriesName> seriesNameList = null;
-	Hashtable<String, Series> seriesTable;
-	StudyCheckBox cb = null;
-	StudyName studyName = null;
-	String patientName = null;
-	String studyDate = null;
-	String patientID = null;
-	String siuid = null;
-	String requiredStudyType = "";
-	String gender = "";
-	String checkGender = "";
-	boolean showDicomFiles = false;
-	boolean seriesVisible = true;
-	boolean wrongStudyType = false;
-	boolean wrongReferences = false;
+	private final LinkedList<FileName> list;
+	private final Hashtable<String, Series> seriesTable;
+	private final StudyCheckBox cb;
+	final StudyName studyName;
+	private final String patientName;
+	private final String studyDate;
+	private final String siuid;
+	private String requiredStudyType = "";
+	private boolean showDicomFiles = false;
+	private boolean seriesVisible = true;
+	private boolean wrongStudyType = false;
+	private boolean wrongReferences = false;
 
 	public Study(FileName fileName) {
 		list = new LinkedList<FileName>();
@@ -40,7 +34,6 @@ public class Study implements ActionListener, Comparable<Study> {
 		cb = new StudyCheckBox();
 		cb.addActionListener(this);
 		patientName = fileName.getPatientName();
-		patientID = fileName.getPatientID();
 		studyDate = fileName.getStudyDate();
 		studyName = new StudyName(fileName);
 		studyName.addActionListener(this);
@@ -76,7 +69,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		}
 	}
 
-	public void hideSeries(boolean hide) {
+	private void hideSeries(boolean hide) {
 		DirectoryPanel dp = getDirectoryPanel();
 		for (FileName fn : list) {
 			if (dp != null) dp.setRowVisible(fn.getCheckBox(), hide);
@@ -106,12 +99,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		requiredStudyType = st;
 	}
 
-	public void setGender(String st) {
-		gender = st;
-	}
-
-
-	public String getPatientName() {
+	private String getPatientName() {
 		return patientName;
 	}
 
@@ -119,9 +107,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		return siuid;
 	}
 
-	public String getPatientID() { return patientID; }
-
-	public String getStudyDate() {
+	private String getStudyDate() {
 		return studyDate;
 	}
 
@@ -139,7 +125,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		studyName.changeDisplayedStudyDescription(studyDescription);
 	}
 
-	public void selectAll() {
+	private void selectAll() {
 		DirectoryPanel dp = getDirectoryPanel();
 		for (FileName fn : list) {
 			fn.setSelected(true);
@@ -153,7 +139,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		seriesVisible = true;
 	}
 
-	public void deselectAll() {
+	private void deselectAll() {
 		DirectoryPanel dp = getDirectoryPanel();
 		for (FileName fn : list) {
 			fn.setSelected(false);
@@ -179,14 +165,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		return null;
 	}
 
-	public FileName[] getFileNames() {
-		FileName[] names = new FileName[list.size()];
-		names = list.toArray(names);
-		Arrays.sort(names);
-		return names;
-	}
-
-	public void generateSeries() {
+	private void generateSeries() {
 		for (final FileName name : list) {
 			studyName.addSeriesModality(name.getModality());
 			String seriesInstanceUID = name.getSeriesInstanceUID();
@@ -202,7 +181,7 @@ public class Study implements ActionListener, Comparable<Study> {
 		}
 	}
 
-	public boolean checkFrameOfRef() {
+	private boolean checkFrameOfRef() {
 
 		String temp = "default";
 		boolean moreThanOne = true;
@@ -227,7 +206,7 @@ public class Study implements ActionListener, Comparable<Study> {
 
 	public boolean isReferenceWrong() { return wrongReferences; }
 
-	public boolean checkStudyType() {
+	private void checkStudyType() {
 
 		if(!studyName.getClassification().equals(requiredStudyType)) {
 			wrongStudyType = true;
@@ -273,8 +252,6 @@ public class Study implements ActionListener, Comparable<Study> {
 		    	//return false;
 			}
 		}
-
-		return true;
 	}
 
 	public Series[] getSeries() {
