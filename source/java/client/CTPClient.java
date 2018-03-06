@@ -52,6 +52,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     FieldButton showLogButton = null;
     FieldButton instructionsButton = null;
     FieldButton changeStudyDescriptionButton = null;
+    FieldButton changeSeriesDescriptionButton = null;
     int instructionsWidth = 425;
 
     AttachedFrame instructionsFrame = null;
@@ -65,6 +66,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     boolean showDialogButton = true;
     boolean showBrowseButton = true;
     boolean showChangeStudyDescriptionButton = true;
+    boolean showChangeSeriesDescriptionButton = true;
 
     boolean zip = false;
     boolean setBurnedInAnnotation = false;
@@ -106,6 +108,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
 	String oldStudyDescription = null;
 	String newStudyDescription = null;
+
+	HashMap<String,String> siUIDtoNewDescription = null;
 
     public static void main(String[] args) {
 		Logger.getRootLogger().addAppender(
@@ -221,6 +225,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		changeStudyDescriptionButton.setEnabled(false);
         changeStudyDescriptionButton.addActionListener(this);
 
+        changeSeriesDescriptionButton = new FieldButton("Change Series Description");
+        changeSeriesDescriptionButton.setEnabled(false);
+        changeSeriesDescriptionButton.addActionListener(this);
+
+        siUIDtoNewDescription = new HashMap<String,String>();
+
 		//Make the header panel
 		JPanel header = new JPanel();
 		header.setBackground(bgColor);
@@ -272,6 +282,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		if (showChangeStudyDescriptionButton) {
 		    buttonBox.add(Box.createHorizontalStrut(20));
             buttonBox.add(changeStudyDescriptionButton);
+        }
+
+        if (showChangeSeriesDescriptionButton) {
+		    buttonBox.add(Box.createHorizontalStrut(20));
+		    buttonBox.add(changeSeriesDescriptionButton);
         }
 
 		helpURL = config.getProperty("helpURL", "").trim();
@@ -373,6 +388,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);
 				changeStudyDescriptionButton.setEnabled(true);
+				changeSeriesDescriptionButton.setEnabled(true);
 				if (studyList.wrongStudyType) {
 					startButton.setEnabled(false);
 					showSelectionInfo("studyType");
@@ -399,6 +415,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				studyList.selectFirstStudy();
 				startButton.setEnabled(true);
 				changeStudyDescriptionButton.setEnabled(true);
+				changeSeriesDescriptionButton.setEnabled(true);
 				if (studyList.wrongStudyType) {
 					startButton.setEnabled(false);
 					showSelectionInfo("studyType");
@@ -444,8 +461,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		}
         else if (source.equals(changeStudyDescriptionButton)) {
 
-		    // get selected study
-            // show study description
             Study[] studies = studyList.getStudies();
             Study selectedStudy = null;
             int numberOfSelectedStudies = 0;
@@ -480,7 +495,54 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 }
             }
         }
+        else if (source.equals(changeSeriesDescriptionButton)) {
 
+			Study[] studies = studyList.getStudies();
+			Series selectedSeries = null;
+			int numberOfSelectedSeries = 0;
+			for (Study study : studies) {
+				Series[] series = study.getSeries();
+				for (Series s : series) {
+					if (s.isSelected()) {
+						numberOfSelectedSeries++;
+						selectedSeries = s;
+					}
+				}
+			}
+			if (numberOfSelectedSeries != 1) {
+				final JFrame parent = this;
+				Runnable enable = new Runnable() {
+
+					public void run() {
+						JOptionPane.showMessageDialog(parent,
+								"You have to select exactly one series in order to proceed.",
+								"Information", JOptionPane.WARNING_MESSAGE);
+					}
+				};
+				SwingUtilities.invokeLater(enable);
+			}
+			else {
+				final JFrame parent = this;
+				Object selection = JOptionPane.showInputDialog(parent, "old series description: "
+								+ selectedSeries.seriesName.fn.getSeriesDescription() +
+								"\nnew series Description: ",
+						"New Series Description", JOptionPane.QUESTION_MESSAGE, null, null,
+						getNewSeriesDescription(selectedSeries.seriesName.fn.getSeriesInstanceUID()));
+				if (selection != null) {
+					selectedSeries.updateSeriesDescription(selection.toString());
+				    siUIDtoNewDescription.put(selectedSeries.seriesName.fn.getSeriesInstanceUID(),
+                            selection.toString());
+				}
+			}
+
+        }
+	}
+
+	private String getNewSeriesDescription(String siuid) {
+    	if (siUIDtoNewDescription.containsKey(siuid)) {
+            return siUIDtoNewDescription.get(siuid);
+        }
+    	return null;
 	}
 
     private void setWaitCursor(boolean on) {
@@ -593,7 +655,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 				dialogButton.setEnabled(true);
 				startButton.setEnabled(true);
 				JOptionPane.showMessageDialog(parent,
-						"The selected images have been processed..",
+						"The selection has been processed..",
 						"Processing Complete", JOptionPane.INFORMATION_MESSAGE);
 				WindowEvent wev = new WindowEvent(parent, WindowEvent.WINDOW_CLOSING);
 				Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(wev);

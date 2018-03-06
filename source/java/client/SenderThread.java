@@ -12,10 +12,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-import org.dcm4che.data.DcmElement;
 import org.dcm4che.dict.TagDictionary;
 import org.dcm4che.dict.Tags;
-import org.dcm4che.dict.VRs;
 import org.rsna.ctp.objects.*;
 import org.rsna.ctp.pipeline.Status;
 import org.rsna.ctp.stdstages.anonymizer.AnonymizerStatus;
@@ -32,47 +30,47 @@ import org.rsna.util.*;
 
 import org.dcm4che.dict.DictionaryFactory;
 
-import javax.swing.*;
-
 public class SenderThread extends Thread {
 
-	StudyList studyList;
-	String httpURLString;
-	String dicomURLString;
+	private final StudyList studyList;
+	private final String httpURLString;
+	private final String dicomURLString;
 	
-	String stowURLString;
-	String username = "";
-	String password = "";
-	boolean authenticate = false;
-	String authHeader = "";
+	private final String stowURLString;
+	private String username;
+	private String password;
+	private boolean authenticate;
+	private String authHeader = "";
 	
-	File exportDirectory = null;
-	boolean renameFiles = false;
-	DirectoryPanel dp;
-	CTPClient parent;
-	Properties daScriptProps;
-	Properties daLUTProps;
-	IDTable idTable;
-	String dfScript;
-	PixelScript dpaPixelScript;
-	boolean acceptNonImageObjects;
-	boolean dfEnabled;
-	boolean dpaEnabled;
-	boolean setBurnedInAnnotation = false;
-	boolean zip = false;
-	DicomStorageSCU scu = null;
-	IntegerTable integerTable = null;
+	private File exportDirectory;
+	private boolean renameFiles;
+	private final DirectoryPanel dp;
+	private final CTPClient parent;
+	private final Properties daScriptProps;
+	private final Properties daLUTProps;
+	private final IDTable idTable;
+	private final String dfScript;
+	private final PixelScript dpaPixelScript;
+	private final boolean acceptNonImageObjects;
+	private final boolean dfEnabled;
+	private final boolean dpaEnabled;
+	private boolean setBurnedInAnnotation;
+	private boolean zip;
+	private DicomStorageSCU scu = null;
+	private IntegerTable integerTable = null;
 
-	static final int retryCount = 5;
-	static final int oneSecond = 1000;
-	static final int connectionTimeout = 20 * oneSecond;
-	static final int readTimeout = 5 * oneSecond;
+	private boolean cleanupFile = false;
+
+	private static final int retryCount = 5;
+	private static final int oneSecond = 1000;
+	private static final int connectionTimeout = 20 * oneSecond;
+	private static final int readTimeout = 5 * oneSecond;
 	
-	static final String JPEGBaseline = "1.2.840.10008.1.2.4.50";
-	static final long maxUnchunked = 20 * 1024 * 1024;
+	private static final String JPEGBaseline = "1.2.840.10008.1.2.4.50";
+	private static final long maxUnchunked = 20 * 1024 * 1024;
 
 
-	static final DictionaryFactory dFact = DictionaryFactory.getInstance();
+	private static final DictionaryFactory dFact = DictionaryFactory.getInstance();
 	static final TagDictionary tagDictionary = dFact.getDefaultTagDictionary();
 
     public SenderThread (CTPClient parent) {
@@ -173,27 +171,67 @@ public class SenderThread extends Thread {
 							String phiPatientName = dob.getPatientName();
 							String phiPatientID = dob.getPatientID();
 
+							dob = new DicomObject(dob.getFile(), true);
+							File dobFile = dob.getFile();
+							File tFile = null;
+
+							//change study description if required
+							if (parent.newStudyDescription != null) {
+								dob.setElementValue(Tags.StudyDescription, parent.newStudyDescription);
+								cleanupFile = true;
+
+							}
+
+							// change series description if required
+                            // here we should take care of the modality,
+                            // since we have to store the new description
+                            // in the appropriate tag of the modality
+							String siuid = dob.getSeriesInstanceUID();
+                            if (parent.siUIDtoNewDescription.containsKey(siuid)) {
+
+								String modality = dob.getModality();
+								switch (modality) {
+									case "RTDOSE":
+										dob.setElementValue(Tags.DoseComment, parent.siUIDtoNewDescription.get(siuid));
+										break;
+									case "RTPLAN":
+										dob.setElementValue(Tags.RTPlanLabel, parent.siUIDtoNewDescription.get(siuid));
+										dob.setElementValue(Tags.RTPlanName, parent.siUIDtoNewDescription.get(siuid));
+										dob.setElementValue(Tags.RTPlanDescription, parent.siUIDtoNewDescription.get(siuid));
+										break;
+									case "RTSTRUCT":
+										dob.setElementValue(Tags.StructureSetLabel, parent.siUIDtoNewDescription.get(siuid));
+										dob.setElementValue(Tags.StructureSetName, parent.siUIDtoNewDescription.get(siuid));
+										dob.setElementValue(Tags.StructureSetDescription, parent.siUIDtoNewDescription.get(siuid));
+										break;
+									case "RTIMAGE":
+										dob.setElementValue(Tags.RTImageName, parent.siUIDtoNewDescription.get(siuid));
+										dob.setElementValue(Tags.RTImageLabel, parent.siUIDtoNewDescription.get(siuid));
+										dob.setElementValue(Tags.RTImageDescription, parent.siUIDtoNewDescription.get(siuid));
+										break;
+									default:
+										dob.setElementValue(Tags.SeriesDescription, parent.siUIDtoNewDescription.get(siuid));
+										break;
+								}
+								cleanupFile = true;
+							}
+
+                            if (cleanupFile) {
+								tFile = File.createTempFile("TMP-", ".dcm", dobFile.getParentFile());
+								dob.saveAs(tFile, false);
+								dob.close();
+								// parse the dicom object from the new modified temporary file
+								// delete the file later on
+								dob = new DicomObject(tFile);
+                            }
+
 							//Anonymize the pixels and the rest of the dataset.
 							//This returns a new DicomObject in the temp directory.
 							//The original object is left unmodified.
 							dob = anonymize(dob, fileStatus);
 
-							//change study description if required
-							if (parent.newStudyDescription != null) {
-								// Ugly but effective - write study description to dicom file
-								dob = new DicomObject(dob.getFile(), true);
-								File dobFile = dob.getFile();
-								dob.setElementValue(Tags.StudyDescription, parent.newStudyDescription);
-								//Save the modified object
-								File tFile = File.createTempFile("TMP-", ".dcm", dobFile.getParentFile());
-								dob.saveAs(tFile, false);
-								dob.close();
-								dobFile.delete();
-
-								//Okay, we have saved the modified file in the temp file
-								//and deleted the original file; now rename the temp file
-								//to the original name so nobody is the wiser.
-								tFile.renameTo(dobFile);
+							if (cleanupFile) {
+								tFile.delete();
 							}
 
 							//If all went well, update the idTable and export
@@ -270,11 +308,11 @@ public class SenderThread extends Thread {
 		parent.transmissionComplete();
 	}
 
-	String plural(int n) {
+	private String plural(int n) {
 		return (n != 1) ? "s" : "";
 	}
 
-	String append(String status, String text) {
+	private String append(String status, String text) {
 		if (status.length() > 0) status += ";";
 		status += text;
 		return status;
@@ -403,7 +441,7 @@ public class SenderThread extends Thread {
 		long fileLength = fileToExport.length();
 		if (fileLength == 0) return false;
 		
-		HttpURLConnection conn = null;
+		HttpURLConnection conn;
 		OutputStream svros = null;
 		try {
 			//Establish the connection

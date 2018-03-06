@@ -16,10 +16,12 @@ public class SeriesName extends JButton {
     String name = "";
     FileName fn = null;
     String modality = "";
+    String seriesDescription = null;
 
     public SeriesName(FileName fileName) {
         super();
         fn = fileName;
+        seriesDescription = fn.getSeriesDescription();
         modality = fn.getModality();
         updateName();
         setFont( new Font( "Monospaced", Font.BOLD, 14 ) );
@@ -37,6 +39,11 @@ public class SeriesName extends JButton {
         updateName();
     }
 
+    public void changeDisplaySeriesDescription(String nsd) {
+        seriesDescription = nsd;
+        updateName();
+    }
+
     public String getModality(){
         return modality;
     }
@@ -45,16 +52,16 @@ public class SeriesName extends JButton {
 
         if(modality.equals("RTSTRUCT")) {
             name = String.format("%-16s", "[" + modality + "]")
-                    + " " + String.format("%-50s", fn.getSeriesDescription().substring(0,
-                    Math.min(fn.getSeriesDescription().length(), 50)))
+                    + " " + String.format("%-50s", seriesDescription.substring(0,
+                    Math.min(seriesDescription.length(), 50)))
                     + " " + String.format("%-11s", "<ROI=" + fn.getROINumberList().size() + ">")
                     + " " + String.format("%-10s", "SERIES")
                     + " " + String.format("%-2s", "  " + fn.getSeriesDate());
         }
         else {
             name = String.format("%-16s", "[" + modality + "]")
-                    + " " + String.format("%-53s", fn.getSeriesDescription().substring(0,
-                    Math.min(fn.getSeriesDescription().length(), 53)))
+                    + " " + String.format("%-53s", seriesDescription.substring(0,
+                    Math.min(seriesDescription.length(), 53)))
                     + " " + String.format("%-8s", "(" + String.format("%03d", numberOfFiles) + ")")
                     + " " + String.format("%-10s", "SERIES")
                     + " " + String.format("%-2s", "  " + fn.getSeriesDate());

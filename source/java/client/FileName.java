@@ -124,7 +124,7 @@ public class FileName implements Comparable<FileName> {
 				if (seriesDescription.equals("")) {
 					seriesDescription += temp;
 				}
-				else if (!temp.equals("")) {
+				else {
 					seriesDescription += " - " + temp;
 				}
 
