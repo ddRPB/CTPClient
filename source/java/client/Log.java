@@ -15,7 +15,7 @@ import org.rsna.util.FileUtil;
 public class Log {
 
 	private static Log logInstance = null;
-	private StringBuffer log;
+	private final StringBuffer log;
 
 	public static Log getInstance() {
 		if (logInstance == null) logInstance = new Log();

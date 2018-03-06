@@ -13,9 +13,9 @@ import javax.swing.border.*;
 
 public class StatusPane extends JPanel {
 
-	static StatusPane pane = null;
-	JLabel status;
-	boolean hasRightComponents = false;
+	private static StatusPane pane = null;
+	private final JLabel status;
+	private boolean hasRightComponents = false;
 
     public static StatusPane getInstance() {
 		return pane;
@@ -26,7 +26,7 @@ public class StatusPane extends JPanel {
 		return pane;
 	}
 
-	protected StatusPane(String s, Color c) {
+	private StatusPane(String s, Color c) {
 		super();
 		setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 		Border lowered = BorderFactory.createLoweredBevelBorder();

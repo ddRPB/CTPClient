@@ -15,27 +15,25 @@ import java.util.*;
 
 public class StudyList implements ActionListener {
 
-	Hashtable<String,Study> table;
-	Hashtable<String, LinkedList<String>> patientIDtoStudy;
-	Hashtable<String, String> patientIDtoPatientName;
+	private final Hashtable<String,Study> table;
+	private final Hashtable<String, LinkedList<String>> patientIDtoStudy;
+	private final Hashtable<String, String> patientIDtoPatientName;
 
-	File directory = null;
-	boolean radioMode = false;
-	boolean anio = false;
-	boolean showDicomFiles = false;
-	FileFilter filesOnlyFilter = new FilesOnlyFilter();
-	FileFilter directoriesOnlyFilter = new DirectoriesOnlyFilter();
+	private final boolean radioMode;
+	private final boolean anio;
+	private final boolean showDicomFiles;
+	private final FileFilter filesOnlyFilter = new FilesOnlyFilter();
+	private final FileFilter directoriesOnlyFilter = new DirectoriesOnlyFilter();
 
-	String firstStudy = null;
-	String studyType = "";
-	String gender = "";
+	private String firstStudy = null;
+	private String studyType = "";
+	private String gender = "";
 
 	boolean wrongStudyType = false;
 	boolean wrongReferences = false;
 
 	public StudyList(File directory, boolean radioMode,
 					 boolean acceptNonImageObjects, boolean showDicomFiles) {
-		this.directory = directory;
 		this.radioMode = radioMode;
 		this.anio = acceptNonImageObjects;
 		this.showDicomFiles = showDicomFiles;
@@ -63,7 +61,7 @@ public class StudyList implements ActionListener {
 		}
 	}
 
-	public void deselectAll() {
+	private void deselectAll() {
 		for (Study study : table.values()) {
 			study.setSelected(false);
 		}
@@ -90,7 +88,7 @@ public class StudyList implements ActionListener {
 
 	private void addFiles(File dir) {
 		File[] files = dir.listFiles(filesOnlyFilter);
-		for (File file: files) {
+		for (File file: Objects.requireNonNull(files)) {
 			FileName fileName = new FileName(file);
 			if (fileName.isDICOM() && (anio || fileName.isImage())) {
 				String siuid = fileName.getStudyInstanceUID();
@@ -115,7 +113,7 @@ public class StudyList implements ActionListener {
 			}
 		}
 		files = dir.listFiles(directoriesOnlyFilter);
-		for (File file : files) addFiles(file);
+		for (File file : Objects.requireNonNull(files)) addFiles(file);
 	}
 
 	public void display(DirectoryPanel dp) {
@@ -132,7 +130,7 @@ public class StudyList implements ActionListener {
 			for (Study study : getStudies()) {
 				study.setRequiredStudyType(studyType);
 				if (patientIDtoStudy.get(patient).contains(study.getSiuid())) {
-					if (first == false) {
+					if (!first) {
 						first = true;
 						firstStudy = study.getSiuid();
 					}

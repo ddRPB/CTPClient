@@ -12,12 +12,9 @@ import javax.swing.*;
 
 public class PatientName extends JButton{
 
-    String name = null;
-
     public PatientName(String patientName){
         super();
-        name = patientName;
-        setText(name);
+        setText(patientName);
         setFont( new Font( "Monospaced", Font.BOLD, 18 ) );
         setForeground( Color.blue );
         setBorder(BorderFactory.createEmptyBorder());
@@ -27,7 +24,4 @@ public class PatientName extends JButton{
         setFocusPainted(false);
     }
 
-    public String getPatientName() {
-        return name;
-    }
 }

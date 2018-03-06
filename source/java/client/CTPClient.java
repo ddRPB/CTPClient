@@ -31,85 +31,73 @@ import org.w3c.dom.Document;
 
 public class CTPClient extends JFrame implements ActionListener, ComponentListener {
 
-    static final String title = "CTP Client - DKTK";
-	static final Color bgColor = new Color(0xc6d8f9);
+    private static final String title = "CTP Client - DKTK";
+	private static final Color bgColor = new Color(0xc6d8f9);
 
-    JScrollPane sp;
-    DirectoryPanel dp;
-    StatusPane status;
-    DialogPanel dialog = null;
-    volatile boolean sending = false;
+    private final JScrollPane sp;
+    private final DirectoryPanel dp;
+	private final DialogPanel dialog;
+    private volatile boolean sending = false;
 
-	JCheckBox chkFiles = null;
+	private final JCheckBox chkFiles;
 
-    InputText httpURLField = null;
-    FieldButton browseButton = null;
-    FieldButton scpButton = null;
-    FieldButton dialogButton = null;
-    FieldButton helpButton = null;
-    FieldButton startButton = null;
-    FieldButton showMemoryButton = null;
-    FieldButton showLogButton = null;
-    FieldButton instructionsButton = null;
-    FieldButton changeStudyDescriptionButton = null;
-    FieldButton changeSeriesDescriptionButton = null;
-    int instructionsWidth = 425;
+    private final InputText httpURLField;
+    private final FieldButton browseButton;
+    private final FieldButton scpButton;
+    private final FieldButton dialogButton;
+    private final FieldButton helpButton;
+    private final FieldButton startButton;
+    private FieldButton showMemoryButton = null;
+    private final FieldButton showLogButton;
+    private final FieldButton instructionsButton;
+    private final FieldButton changeStudyDescriptionButton;
+    private final FieldButton changeSeriesDescriptionButton;
 
-    AttachedFrame instructionsFrame = null;
+	private final AttachedFrame instructionsFrame;
 
-    JFileChooser chooser = null;
-    File dir = null;
+    private JFileChooser chooser = null;
 
-    boolean dfEnabled;
-    boolean dpaEnabled;
-    boolean showURL = true;
-    boolean showDialogButton = true;
-    boolean showBrowseButton = true;
-    boolean showChangeStudyDescriptionButton = true;
-    boolean showChangeSeriesDescriptionButton = true;
+	private final boolean dfEnabled;
+    private final boolean dpaEnabled;
+	private final boolean showBrowseButton;
 
-    boolean zip = false;
-    boolean setBurnedInAnnotation = false;
+	private final boolean zip;
+    private final boolean setBurnedInAnnotation;
 
-    Properties config;
+    private final Properties config;
 
-    DAScript daScript;
-    File daScriptFile;
-    String defaultKeyType = null;
+    private DAScript daScript;
+    private File daScriptFile;
+    private String defaultKeyType = null;
 
-    LookupTable lookupTable;
-    File lookupTableFile;
+	private File lookupTableFile;
 
-    String dfScript;
-    PixelScript dpaPixelScript;
+    private final String dfScript;
+    private final PixelScript dpaPixelScript;
 
-    IDTable idTable = new IDTable();
+    private final IDTable idTable = new IDTable();
 
-    int scpPort;
-    File scpDirectory = null;
-    SimpleDicomStorageSCP scp = null;
-    String ipAddressString = "";
+	private File scpDirectory = null;
+    private SimpleDicomStorageSCP scp = null;
+    private String ipAddressString = "";
 
-    String browsePrompt = "Select a directory containing data to transmit.";
-    String helpURL = null;
+	private File exportDirectory = null;
+    private final boolean renameFiles;
 
-    File exportDirectory = null;
-    boolean renameFiles = false;
+    private StudyList studyList = null;
 
-    StudyList studyList = null;
+    private final String dicomURL;
+    private final String stowURL;
+    private final String stowUsername;
+    private final String stowPassword;
 
-    String dicomURL = null;
-    String stowURL = null;
-    String stowUsername = null;
-    String stowPassword = null;
+    private final String studyType;
+    private final String gender;
 
-    String studyType = null;
-    String gender = null;
-
-	String oldStudyDescription = null;
+	private String oldStudyDescription = null;
 	String newStudyDescription = null;
 
-	HashMap<String,String> siUIDtoNewDescription = null;
+	final HashMap<String,String> siUIDtoNewDescription;
 
     public static void main(String[] args) {
 		Logger.getRootLogger().addAppender(
@@ -120,7 +108,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         new CTPClient(args);
     }
 
-    public CTPClient(String[] args) {
+    private CTPClient(String[] args) {
 		super();
 		System.setProperty("http.keepAlive", "false");
 
@@ -134,7 +122,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		config = getConfiguration(args);
 
 		//Set up the SCP directory
-		scpPort = StringUtil.getInt( config.getProperty("scpPort"), 0 );
+		int scpPort = StringUtil.getInt(config.getProperty("scpPort"), 0);
 		if (scpPort > 0) {
 			try {
 				scpDirectory = File.createTempFile("TMP-", "");
@@ -161,9 +149,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		renameFiles = config.getProperty("renameFiles", "no").equals("yes");
 
 		//Get the button enables
-		showURL = !config.getProperty("showURL", "yes").equals("no");
+		boolean showURL = !config.getProperty("showURL", "yes").equals("no");
 		showBrowseButton = !config.getProperty("showBrowseButton", "yes").equals("no") || (scpPort <= 0);
-		showDialogButton = !config.getProperty("showDialogButton", "yes").equals("no");
+		boolean showDialogButton = !config.getProperty("showDialogButton", "yes").equals("no");
 
 		setTitle(config.getProperty("windowTitle"));
 		JPanel panel = new JPanel(new BorderLayout());
@@ -251,7 +239,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		if (showURL) {
 			Box destBox = Box.createHorizontalBox();
 			destBox.setBackground(bgColor);
-			destBox.add(new FieldLabel("Destination URL:"));
+			destBox.add(new FieldLabel());
 			destBox.add(Box.createHorizontalStrut(5));
 			destBox.add(httpURLField);
 			vBox.add(destBox);
@@ -279,17 +267,19 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 			buttonBox.add(scpButton);
 		}
 
+		boolean showChangeStudyDescriptionButton = true;
 		if (showChangeStudyDescriptionButton) {
 		    buttonBox.add(Box.createHorizontalStrut(20));
             buttonBox.add(changeStudyDescriptionButton);
         }
 
-        if (showChangeSeriesDescriptionButton) {
+		boolean showChangeSeriesDescriptionButton = true;
+		if (showChangeSeriesDescriptionButton) {
 		    buttonBox.add(Box.createHorizontalStrut(20));
 		    buttonBox.add(changeSeriesDescriptionButton);
         }
 
-		helpURL = config.getProperty("helpURL", "").trim();
+		String helpURL = config.getProperty("helpURL", "").trim();
 		if (!helpURL.equals("")) {
 			buttonBox.add(Box.createHorizontalStrut(20));
 			buttonBox.add(helpButton);
@@ -318,10 +308,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		panel.add(main, BorderLayout.CENTER);
 
 		//Make the instructionsFrame
+		int instructionsWidth = 425;
 		instructionsFrame = new AttachedFrame("Instructions", instructionsWidth, bgColor);
 
 		//Make a footer bar to display status.
-		status = StatusPane.getInstance(" ", bgColor);
+		StatusPane status = StatusPane.getInstance(" ", bgColor);
 		if (config.getProperty("showMemory", "no").equals("yes")) {
 			showMemoryButton = new FieldButton("Show Memory");
 			showMemoryButton.addActionListener(this);
@@ -376,7 +367,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		boolean anio = getAcceptNonImageObjects();
 		Object source = event.getSource();
 		if (source.equals(browseButton)) {
-			dir = getDirectory();
+			File dir = getDirectory();
 			if (dir != null) {
 				setWaitCursor(true);
 				dp.clear();
@@ -588,13 +579,13 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		}
 	}
 
-	public String getInstructions() {
+	private String getInstructions() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("<center><h1>Instructions</h1></center><hr/>\n");
 		if ((scp != null)) {
 			sb.append("<h2>To process and export images received from a PACS or workstation:</h2>\n");
 			sb.append("<ol>");
-			sb.append("<li>Send images to <b>"+ ipAddressString+"</b>\n");
+			sb.append("<li>Send images to <b>").append(ipAddressString).append("</b>\n");
 			sb.append("<li>Click the <b>Open DICOM Storage</b> button.\n");
 			sb.append("<li>Check the boxes of the images to be processed.\n");
 			sb.append("<li>Click the <b>Start</b> button.\n");
@@ -682,48 +673,50 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		SwingUtilities.invokeLater(enable);
 	}
 
-	public void showSelectionInfo(String infoType) {
+	private void showSelectionInfo(String infoType) {
 		final JFrame parent = this;
 
-		if (infoType.equals("studyType")) {
-			Runnable enable = new Runnable() {
-				public void run() {
-					JOptionPane.showMessageDialog(parent,
-							"The files do not comply with the required study type.\n" +
-									"Please choose another study.",
-							"Information", JOptionPane.WARNING_MESSAGE);
-				}
-			};
-			SwingUtilities.invokeLater(enable);
-		}
-		else if (infoType.equals("references")) {
-			Runnable enable = new Runnable() {
-				public void run() {
-					JOptionPane.showMessageDialog(parent,
-							"The files do not refer to each other (in relation to the required study type).\n" +
-									"Please choose another study.",
-							"Information", JOptionPane.WARNING_MESSAGE);
-				}
-			};
-			SwingUtilities.invokeLater(enable);
-		}
-		else {
-			Runnable enable = new Runnable() {
-				public void run() {
-					JOptionPane.showMessageDialog(parent,
-							"Unknown Error.",
-							"Information", JOptionPane.WARNING_MESSAGE);
-				}
-			};
-			SwingUtilities.invokeLater(enable);
+		switch (infoType) {
+			case "studyType": {
+				Runnable enable = new Runnable() {
+					public void run() {
+						JOptionPane.showMessageDialog(parent,
+								"The files do not comply with the required study type.\n" +
+										"Please choose another study.",
+								"Information", JOptionPane.WARNING_MESSAGE);
+					}
+				};
+				SwingUtilities.invokeLater(enable);
+				break;
+			}
+			case "references": {
+				Runnable enable = new Runnable() {
+					public void run() {
+						JOptionPane.showMessageDialog(parent,
+								"The files do not refer to each other (in relation to the required study type).\n" +
+										"Please choose another study.",
+								"Information", JOptionPane.WARNING_MESSAGE);
+					}
+				};
+				SwingUtilities.invokeLater(enable);
+				break;
+			}
+			default: {
+				Runnable enable = new Runnable() {
+					public void run() {
+						JOptionPane.showMessageDialog(parent,
+								"Unknown Error.",
+								"Information", JOptionPane.WARNING_MESSAGE);
+					}
+				};
+				SwingUtilities.invokeLater(enable);
+				break;
+			}
 		}
 	}
 
 	public boolean checkGender() {
-    	if (gender == null) {
-    		return false;
-		}
-		return true;
+		return gender != null;
 	}
 
 	public void showGenderWarning() {
@@ -927,10 +920,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 	}
 
 	private void getLookupTable() {
-		lookupTable = null;
 		String daLUTName = config.getProperty("daLUTName");
 		lookupTableFile = getTextFile(daLUTName, "/LUT.properties");
-		lookupTable = LookupTable.getInstance(lookupTableFile, defaultKeyType);
 	}
 
 	private String getDFScriptObject() {
@@ -973,7 +964,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 		String protocol = config.getProperty("protocol");
 		String host = config.getProperty("host");
 		String application = config.getProperty("application");
-		if ((protocol != null) && (host != null) && (application != null) && (name != null)) {
+		if (protocol != null && host != null && application != null) {
 			String url = protocol + "://" + host + "/" + application + "/" + name;
 			BufferedReader reader = null;
 			try {
@@ -997,7 +988,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 			}
 			catch (Exception unable) { FileUtil.close(reader); }
 		}
-		else if (name != null) {
+		else {
 			//The file is not available on the server, try to get it locally.
 			File localFile = new File(name);
 			if (localFile.exists()) return localFile;
@@ -1029,8 +1020,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 	}
 
     class WindowCloser extends WindowAdapter {
-		private Component parent;
-		public WindowCloser(JFrame parent) {
+		private final Component parent;
+		WindowCloser(JFrame parent) {
 			this.parent = parent;
 			parent.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		}
@@ -1076,7 +1067,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
 	//UI components
 	class TitleLabel extends JLabel {
-		public TitleLabel(String s) {
+		TitleLabel(String s) {
 			super(s);
 			setFont( new Font( "SansSerif", Font.BOLD, 24 ) );
 			setForeground( Color.BLUE );
@@ -1084,7 +1075,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 	}
 
 	class InputText extends JTextField {
-		public InputText(String s) {
+		InputText(String s) {
 			super(s);
 			setFont( new Font("Monospaced",Font.PLAIN,12) );
 			Dimension size = getPreferredSize();
@@ -1095,23 +1086,15 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 	}
 
 	class FieldLabel extends JLabel {
-		public FieldLabel(String s) {
-			super(s);
+		FieldLabel() {
+			super("Destination URL:");
 			setFont( new Font( "SansSerif", Font.BOLD, 12 ) );
 			setForeground( Color.BLUE );
 		}
 	}
 
-	class FieldValue extends JLabel {
-		public FieldValue(String s) {
-			super(s);
-			setFont( new Font( "Monospaced", Font.BOLD, 12 ) );
-			setForeground( Color.BLACK );
-		}
-	}
-
 	class FieldButton extends JButton {
-		public FieldButton(String s) {
+		FieldButton(String s) {
 			super(s);
 			setFont( new Font( "SansSerif", Font.BOLD, 12 ) );
 			setForeground( Color.BLUE );
