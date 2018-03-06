@@ -12,11 +12,10 @@ import javax.swing.*;
 
 public class SeriesName extends JButton {
 
-    int numberOfFiles = 0;
-    String name = "";
-    FileName fn = null;
-    String modality = "";
-    String seriesDescription = null;
+    private int numberOfFiles = 0;
+    final FileName fn;
+    private final String modality;
+    private String seriesDescription;
 
     public SeriesName(FileName fileName) {
         super();
@@ -48,8 +47,9 @@ public class SeriesName extends JButton {
         return modality;
     }
 
-    public void updateName () {
+    private void updateName() {
 
+        String name;
         if(modality.equals("RTSTRUCT")) {
             name = String.format("%-16s", "[" + modality + "]")
                     + " " + String.format("%-50s", seriesDescription.substring(0,

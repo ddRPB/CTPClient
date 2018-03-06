@@ -17,15 +17,15 @@ import javax.swing.*;
 
 public class Series implements ActionListener, Comparable<Series> {
 
-    LinkedList<FileName> list = null;
-    LinkedList<ROI> roiList = null;
-    SeriesCheckBox cb = null;
-    SeriesName seriesName = null;
-    String patientName = null;
-    boolean showDicomFiles = false;
-    FileName fn = null;
-    boolean roisVisible = true;
-    String frameOfRef = null;
+    private final LinkedList<FileName> list;
+    private final LinkedList<ROI> roiList;
+    private final SeriesCheckBox cb;
+    final SeriesName seriesName;
+    private final String patientName;
+    private boolean showDicomFiles = false;
+    private final FileName fn;
+    private boolean roisVisible = true;
+    private final String frameOfRef;
 
     public Series(FileName fileName) {
         fn = fileName;
@@ -59,10 +59,10 @@ public class Series implements ActionListener, Comparable<Series> {
             }
         }
         else if (source.equals(seriesName)) {
-            if (seriesName.getModality().equals("RTSTRUCT") && roisVisible == true) {
+            if (seriesName.getModality().equals("RTSTRUCT") && roisVisible) {
                 hideROIs(false);
             }
-            else if (seriesName.getModality().equals("RTSTRUCT") && roisVisible == false) {
+            else if (seriesName.getModality().equals("RTSTRUCT") && !roisVisible) {
                 hideROIs(true);
             }
             else {
@@ -96,7 +96,7 @@ public class Series implements ActionListener, Comparable<Series> {
 
     public SeriesCheckBox getCb() { return cb; }
 
-    public String getPatientName() { return patientName; }
+    private String getPatientName() { return patientName; }
 
     public String getFrameOfRef() { return frameOfRef; }
 
@@ -112,7 +112,7 @@ public class Series implements ActionListener, Comparable<Series> {
         else deselectAll();
     }
 
-    public void selectAll() {
+    private void selectAll() {
         DirectoryPanel dp = getDirectoryPanel();
         for (FileName fn : list) {
             fn.setSelected(true);
@@ -126,7 +126,7 @@ public class Series implements ActionListener, Comparable<Series> {
         }
     }
 
-    public void deselectAll() {
+    private void deselectAll() {
         DirectoryPanel dp = getDirectoryPanel();
         for (FileName fn : list) {
             fn.setSelected(false);
@@ -165,7 +165,7 @@ public class Series implements ActionListener, Comparable<Series> {
         return names;
     }
 
-    public void generateROIs() {
+    private void generateROIs() {
         int i = 0;
         String ObsLabel = "", RoiType = "";
         for(String name : fn.getROINameList()) {

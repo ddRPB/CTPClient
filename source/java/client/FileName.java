@@ -11,7 +11,6 @@ import java.awt.*;
 import java.io.*;
 import java.util.LinkedList;
 import javax.swing.*;
-import javax.xml.crypto.Data;
 
 import org.dcm4che.data.Dataset;
 import org.dcm4che.data.DcmElement;

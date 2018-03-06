@@ -5,7 +5,7 @@ import java.awt.*;
 
 public class ROIName extends JButton{
 
-    String name = "";
+    private final String name;
 
     public ROIName(String roiName) {
         super();
@@ -20,7 +20,7 @@ public class ROIName extends JButton{
         setFocusPainted(false);
     }
 
-    public void updateName () {
+    private void updateName() {
         setText(name);
     }
 

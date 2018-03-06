@@ -7,13 +7,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
 
-public class ROI implements ActionListener, Comparable<ROI>{
+public class ROI implements ActionListener{
 
-    ROICheckBox cb = null;
-    ROIName rname = null;
-    String patientName = null;
-    LinkedList<FileName> list = null;
-    FileName fn = null;
+    private final ROICheckBox cb;
+    private final ROIName rname;
+    private final LinkedList<FileName> list;
 
     public ROI(String name, String numberAsString, String ObsLabel, String RoiType){
         cb = new ROICheckBox();
@@ -31,8 +29,6 @@ public class ROI implements ActionListener, Comparable<ROI>{
         else if (!RoiType.equals("")) {
             description += " (" + RoiType + ")";
         }
-
-
 
         rname = new ROIName("[ROI] "
                 + String.format("%-74s", description.substring(0, Math.min(description.length(), 74)))
@@ -62,18 +58,7 @@ public class ROI implements ActionListener, Comparable<ROI>{
         return cb;
     }
 
-    public int compareTo(ROI roi) {
-        if (roi == null)  return 0;
-        int c;
-        if ( (c = this.patientName.compareTo(roi.getPatientName())) != 0 ) return c;
-        return 0;
-    }
-
-    public String getPatientName() {
-        return patientName;
-    }
-
-    public void selectAll() {
+    private void selectAll() {
         DirectoryPanel dp = getDirectoryPanel();
         for (FileName fn : list) {
             fn.setSelected(true);
@@ -95,7 +80,7 @@ public class ROI implements ActionListener, Comparable<ROI>{
         }
     }
 
-    public void deselectAll() {
+    private void deselectAll() {
         DirectoryPanel dp = getDirectoryPanel();
         for (FileName fn : list) {
             fn.setSelected(false);
