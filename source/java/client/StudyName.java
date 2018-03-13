@@ -91,7 +91,7 @@ public class StudyName extends JButton {
     }
 
     private void updateName() {
-        String desc = studyDescription + frameInfo;
+        String desc = studyDescription;
         String name = String.format("%-16s", "[" + classification + "]")
                 + " " + String.format("%-31s", desc.substring(0,
                 Math.min(desc.length(), 31)))

@@ -14,6 +14,10 @@ import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.util.*;
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 
 import org.apache.log4j.*;
 import org.rsna.ctp.stdstages.anonymizer.dicom.DAScript;
@@ -81,6 +85,14 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private File exportDirectory = null;
     private StudyList studyList = null;
     private String oldStudyDescription = null;
+    private JButton studyDescriptionButton;
+    private JButton seriesDescriptionButton;
+    private JTextField newGenderField;
+    private JTextField newDescField;
+    private JTextField descField;
+    private JButton okButton;
+    private JFrame userDialogFrame;
+    private DefaultTableModel seriesTableModel;
 
     private CTPClient(String[] args) {
         super();
@@ -186,10 +198,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         startButton.addActionListener(this);
 
         changeStudyDescriptionButton = new FieldButton("Change Study Description");
+        changeStudyDescriptionButton.setVisible(false);
         changeStudyDescriptionButton.setEnabled(false);
         changeStudyDescriptionButton.addActionListener(this);
 
         changeSeriesDescriptionButton = new FieldButton("Change Series Description");
+        changeSeriesDescriptionButton.setVisible(false);
         changeSeriesDescriptionButton.setEnabled(false);
         changeSeriesDescriptionButton.addActionListener(this);
 
@@ -366,8 +380,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 if (studyList.wrongStudyType) {
                     startButton.setEnabled(false);
                     showSelectionInfo("studyType");
-                }
-                if (studyList.wrongReferences) {
+                } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
                 }
@@ -391,8 +404,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 if (studyList.wrongStudyType) {
                     startButton.setEnabled(false);
                     showSelectionInfo("studyType");
-                }
-                if (studyList.wrongReferences) {
+                } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
                 }
@@ -408,8 +420,15 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 browseButton.setEnabled(false);
                 scpButton.setEnabled(false);
                 sending = true;
-                SenderThread sender = new SenderThread(this);
-                sender.start();
+
+                //show window to change study/series descriptions
+                this.setEnabled(false);
+                this.setVisible(false);
+                showUserDialog();
+
+
+                //SenderThread sender = new SenderThread(this);
+                //sender.start();
             }
         } else if (source.equals(helpButton)) {
             String helpURL = config.getProperty("helpURL");
@@ -495,6 +514,20 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                     siUIDtoNewDescription.put(selectedSeries.getSeriesInstanceUID(),
                             selection.toString());
                 }
+            }
+        } else if (source.equals(studyDescriptionButton)) {
+            newDescField.setText(descField.getText());
+
+        } else if (source.equals(okButton)) {
+            userDialogFrame.setEnabled(false);
+            userDialogFrame.setVisible(false);
+            this.setEnabled(true);
+            this.setVisible(true);
+            SenderThread sender = new SenderThread(this);
+            sender.start();
+        } else if (source.equals(seriesDescriptionButton)) {
+            for (int i = 0; i < seriesTableModel.getRowCount(); i++) {
+                seriesTableModel.setValueAt(seriesTableModel.getValueAt(i, 1), i, 2);
             }
         }
     }
@@ -618,7 +651,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         final JFrame parent = this;
         Runnable enable = new Runnable() {
 
-
             public void run() {
                 scpButton.setEnabled(true);
                 browseButton.setEnabled(true);
@@ -714,6 +746,236 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         };
         sending = false;
         SwingUtilities.invokeLater(enable);
+    }
+
+    public void showUserDialog () {
+
+        Study studies[] = studyList.getStudies();
+
+        userDialogFrame = new JFrame("Selected DICOM Study");
+        userDialogFrame.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JPanel dicomPatientPanel = new JPanel();
+        dicomPatientPanel.setLayout(new BoxLayout(dicomPatientPanel, BoxLayout.Y_AXIS));
+
+        TitledBorder dicomPatientBorder = new TitledBorder("DICOM Patient");
+        dicomPatientBorder.setTitleJustification(TitledBorder.LEFT);
+        dicomPatientBorder.setTitlePosition(TitledBorder.TOP);
+        dicomPatientPanel.setBorder(dicomPatientBorder);
+
+        JPanel idPanel = new JPanel();
+        idPanel.setLayout(new FlowLayout());
+
+        JLabel dicomPatientLabel = new JLabel("ID:         ");
+        JTextField idField = new JTextField(studies[0].getPatientID());
+        idField.setEnabled(false);
+        idField.setBackground(Color.PINK);
+        idField.setPreferredSize(new Dimension(250, 24));
+        JLabel arrowLabel01 = new JLabel(" -> ");
+        JTextField newIdField = new JTextField();
+        newIdField.setEnabled(false);
+        newIdField.setBackground(Color.GREEN);
+        newIdField.setPreferredSize(new Dimension(250, 24));
+
+        idPanel.add(dicomPatientLabel);
+        idPanel.add(idField);
+        idPanel.add(arrowLabel01);
+        idPanel.add(newIdField);
+        dicomPatientPanel.add(idPanel);
+
+        JPanel namePanel = new JPanel();
+        namePanel.setLayout(new FlowLayout());
+
+        JLabel dicomNameLabel = new JLabel("Name:    ");
+
+        JTextField nameField = new JTextField(studies[0].getPatientname());
+        nameField.setEnabled(false);
+        nameField.setBackground(Color.PINK);
+        nameField.setPreferredSize(new Dimension(250, 24));
+        JLabel arrowLabel02 = new JLabel(" -> ");
+        JTextField newNameField = new JTextField();
+        newNameField.setBackground(Color.GREEN);
+        newNameField.setPreferredSize(new Dimension(250, 24));
+
+        namePanel.add(dicomNameLabel);
+        namePanel.add(nameField);
+        namePanel.add(arrowLabel02);
+        namePanel.add(newNameField);
+        dicomPatientPanel.add(namePanel);
+
+        JPanel genderPanel = new JPanel();
+        genderPanel.setLayout(new FlowLayout());
+
+        JLabel dicomGenderLabel = new JLabel("Gender:  ");
+        JTextField genderField = new JTextField(studies[0].getGender());
+        genderField.setEnabled(false);
+        genderField.setBackground(Color.PINK);
+        genderField.setPreferredSize(new Dimension(250, 24));
+        JLabel arrowLabel03 = new JLabel(" -> ");
+        newGenderField = new JTextField();
+        newGenderField.setBackground(Color.GREEN);
+        newGenderField.setPreferredSize(new Dimension(250, 24));
+
+        genderPanel.add(dicomGenderLabel);
+        genderPanel.add(genderField);
+        genderPanel.add(arrowLabel03);
+        genderPanel.add(newGenderField);
+        dicomPatientPanel.add(genderPanel);
+
+        JPanel dobPanel = new JPanel();
+        dobPanel.setLayout(new FlowLayout());
+
+        JLabel dicomDOBLabel = new JLabel("DOB:      ");
+        JTextField dobField = new JTextField(studies[0].getPatientBirthDate());
+        dobField.setEnabled(false);
+        dobField.setBackground(Color.PINK);
+        dobField.setPreferredSize(new Dimension(250, 24));
+        JLabel arrowLabel04 = new JLabel(" -> ");
+        JTextField newDOBField = new JTextField();
+        newDOBField.setBackground(Color.GREEN);
+        newDOBField.setPreferredSize(new Dimension(250, 24));
+
+        dobPanel.add(dicomDOBLabel);
+        dobPanel.add(dobField);
+        dobPanel.add(arrowLabel04);
+        dobPanel.add(newDOBField);
+        dicomPatientPanel.add(dobPanel);
+
+
+        /*-------------------------------------------------------------*/
+
+        JPanel dicomStudyPanel = new JPanel();
+        dicomStudyPanel.setLayout(new BoxLayout(dicomStudyPanel, BoxLayout.Y_AXIS));
+
+        TitledBorder dicomStudyBorder = new TitledBorder("DICOM Study");
+        dicomStudyBorder.setTitleJustification(TitledBorder.LEFT);
+        dicomStudyBorder.setTitlePosition(TitledBorder.TOP);
+        dicomStudyPanel.setBorder(dicomStudyBorder);
+
+        JPanel typePanel = new JPanel();
+        typePanel.setLayout(new FlowLayout());
+
+        JLabel dicomTypeLabel = new JLabel("Study type: ");
+        JTextField typeField = new JTextField(studies[0].getStudyType());
+        typeField.setEnabled(false);
+        typeField.setBackground(Color.PINK);
+        typeField.setPreferredSize(new Dimension(250, 24));
+
+        typePanel.add(dicomTypeLabel);
+        typePanel.add(typeField);
+        dicomStudyPanel.add(typePanel);
+
+        JPanel descPanel = new JPanel();
+        descPanel.setLayout(new FlowLayout());
+
+        JLabel dicomDescLabel = new JLabel("Description: ");
+        descField = new JTextField(studies[0].getStudyDescription());
+        descField.setEnabled(false);
+        descField.setBackground(Color.PINK);
+        descField.setPreferredSize(new Dimension(250, 24));
+        studyDescriptionButton = new JButton(" -> ");
+        studyDescriptionButton.addActionListener(this);
+        newDescField = new JTextField();
+        newDescField.setBackground(Color.GREEN);
+        newDescField.setPreferredSize(new Dimension(250, 24));
+
+        descPanel.add(dicomDescLabel);
+        descPanel.add(descField);
+        descPanel.add(studyDescriptionButton);
+        descPanel.add(newDescField);
+        dicomStudyPanel.add(descPanel);
+
+        /*-------------------------------------------------------------*/
+
+        JPanel dicomSeriesPanel = new JPanel();
+        dicomSeriesPanel.setLayout(new BoxLayout(dicomSeriesPanel, BoxLayout.Y_AXIS));
+
+        TitledBorder dicomSeriesBorder = new TitledBorder("DICOM Study Series");
+        dicomSeriesBorder.setTitleJustification(TitledBorder.LEFT);
+        dicomSeriesBorder.setTitlePosition(TitledBorder.TOP);
+        dicomSeriesPanel.setBorder(dicomSeriesBorder);
+
+        JPanel seriesButtonPanel = new JPanel();
+        seriesButtonPanel.setLayout(new FlowLayout());
+        seriesDescriptionButton = new JButton(" -> ");
+        seriesDescriptionButton.addActionListener(this);
+        seriesButtonPanel.add(seriesDescriptionButton);
+
+        String[] columnNames = {"Modality",
+                "original Description",
+                "new Description"};
+
+        Object[][] data = {
+                {"RTSTRUCT", "oldName", ""},
+                {"CT", "blabla", ""}
+        };
+
+        seriesTableModel = new DefaultTableModel(data, columnNames){
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // make read only fields except column 2
+                return column == 2;
+            }
+        };
+
+        JTable seriesTable = new JTable(seriesTableModel);
+        TableCellRenderer renderer = new EvenOddRenderer();
+        seriesTable.setDefaultRenderer(Object.class, renderer);
+
+        seriesTable.getColumnModel().getColumn(0).setMaxWidth(100);
+        seriesTable.getColumnModel().getColumn(0).setMinWidth(70);
+
+        JScrollPane seriesTableScrollPane= new JScrollPane(seriesTable);
+        seriesTable.setFillsViewportHeight(true);
+
+        dicomSeriesPanel.add(seriesButtonPanel);
+        dicomSeriesPanel.add(seriesTableScrollPane);
+
+        /*-------------------------------------------------------------*/
+
+        okButton = new JButton("OK");
+        okButton.addActionListener(this);
+        okButton.setMinimumSize(new Dimension(this.getWidth(), 24));
+
+        /*-------------------------------------------------------------*/
+
+        userDialogFrame.add(dicomPatientPanel, gbc);
+        userDialogFrame.add(dicomStudyPanel, gbc);
+        userDialogFrame.add(dicomSeriesPanel, gbc);
+        userDialogFrame.add(okButton, gbc);
+
+        //frame.setSize(this.getWidth(), this.getHeight());
+        userDialogFrame.setMinimumSize(new Dimension(this.getWidth(), this.getHeight()));
+        userDialogFrame.setLocation(this.getLocation());
+        userDialogFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        userDialogFrame.setVisible(true);
+
+    }
+
+    class EvenOddRenderer implements TableCellRenderer {
+
+        public final DefaultTableCellRenderer DEFAULT_RENDERER = new DefaultTableCellRenderer();
+
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            Component renderer = DEFAULT_RENDERER.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+            ((JLabel) renderer).setOpaque(true);
+            Color foreground, background;
+            if (column % 2 == 0) {
+                foreground = Color.black;
+                background = Color.green;
+            } else {
+                foreground = Color.black;
+                background = Color.pink;
+            }
+            renderer.setForeground(foreground);
+            renderer.setBackground(background);
+            return renderer;
+        }
     }
 
     public String getHttpURL() {

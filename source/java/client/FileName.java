@@ -7,11 +7,6 @@
 
 package client;
 
-import java.awt.*;
-import java.io.*;
-import java.util.LinkedList;
-import javax.swing.*;
-
 import org.dcm4che.data.Dataset;
 import org.dcm4che.data.DcmElement;
 import org.dcm4che.dict.Tags;
@@ -19,10 +14,24 @@ import org.rsna.ctp.objects.DicomObject;
 import org.rsna.ui.RowLayout;
 import org.rsna.util.StringUtil;
 
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.util.LinkedList;
+
 public class FileName implements Comparable<FileName> {
 
     private final File file;
     private final FileSize fileSize;
+    private final FileCheckBox cb;
+    private final StatusText statusText;
+    private final LinkedList<String> listRoiRefFrameOfRef;
+    private final LinkedList<String> listRefFrameOfRefFrameOfRefUID;
+    private final LinkedList<String> listROINames;
+    private final LinkedList<String> listROINumber;
+    private final LinkedList<String> listRefROINumber;
+    private final LinkedList<String> listROIObservationLabel;
+    private final LinkedList<String> listROIInterpretedType;
     private String patientName = "";
     private String patientID = "";
     private String studyInstanceUID = "";
@@ -35,26 +44,13 @@ public class FileName implements Comparable<FileName> {
     private int instanceNumberInt = 0;
     private boolean isDICOM = false;
     private boolean isImage = false;
-    private final FileCheckBox cb;
-    private final StatusText statusText;
-
     private String studyDescription = "";
     private String seriesDescription = "";
     private String frameOfReference = "";
     private boolean oncentraCheck = false;
-
     private String refSOPClassUID = "";
     private String refStructSOPInst = "";
     private String refDoseSOPInst = "";
-
-    private final LinkedList<String> listRoiRefFrameOfRef;
-    private final LinkedList<String> listRefFrameOfRefFrameOfRefUID;
-    private final LinkedList<String> listROINames;
-    private final LinkedList<String> listROINumber;
-    private final LinkedList<String> listRefROINumber;
-    private final LinkedList<String> listROIObservationLabel;
-    private final LinkedList<String> listROIInterpretedType;
-
     private DicomObject dob;
 
     public FileName(File file) {
@@ -268,6 +264,10 @@ public class FileName implements Comparable<FileName> {
         return null;
     }
 
+    public LinkedList<String> getListRoiRefFrameOfRef() {
+        return listRoiRefFrameOfRef;
+    }
+
     public LinkedList<String> getROINameList() {
         return listROINames;
     }
@@ -298,6 +298,10 @@ public class FileName implements Comparable<FileName> {
 
     public String getPatientName() {
         return patientName;
+    }
+
+    public String getPatientBirthday() {
+        return fixDate(dob.getElementValue(Tags.PatientBirthDate));
     }
 
     public String getPatientID() {
@@ -364,12 +368,12 @@ public class FileName implements Comparable<FileName> {
         return isImage;
     }
 
-    public void setSelected(boolean selected) {
-        cb.setSelected(selected);
-    }
-
     public boolean isSelected() {
         return cb.isSelected();
+    }
+
+    public void setSelected(boolean selected) {
+        cb.setSelected(selected);
     }
 
     public StatusText getStatusText() {

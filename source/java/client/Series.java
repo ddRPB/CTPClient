@@ -27,6 +27,8 @@ public class Series implements ActionListener, Comparable<Series> {
     private boolean showDicomFiles = false;
     private boolean roisVisible = true;
 
+    private String refs;
+
     public Series(FileName fileName) {
         fn = fileName;
         list = new LinkedList<FileName>();
@@ -209,6 +211,11 @@ public class Series implements ActionListener, Comparable<Series> {
         return list.getFirst().getROIRefFrameOfRef();
     }
 
+    public boolean frameOfRefOK() {
+        return list.getFirst().frameOfRefsOK()
+                && list.getFirst().hasROIonlyOneRefFrameOfRefUID();
+    }
+
     public void display(DirectoryPanel dp) {
         dp.add(cb);
         seriesName.setNumberOfFiles(list.size());
@@ -217,15 +224,27 @@ public class Series implements ActionListener, Comparable<Series> {
 
         if (seriesName.getModality().equals("RTSTRUCT")) {
 
-            if (list.getFirst().frameOfRefsOK()
-                    && list.getFirst().hasROIonlyOneRefFrameOfRefUID()) {
+            if (frameOfRefOK()) {
                 generateROIs();
                 for (ROI r : roiList) {
                     r.display(dp);
                 }
             } else {
-                dp.add(new JLabel("FRAME OF REF!!!"));
-                dp.add(RowLayout.crlf());
+                refs = "";
+                for (String ref : list.getFirst().getListRoiRefFrameOfRef()) {
+                    refs += ref + "\n";
+                }
+
+                Runnable enable = new Runnable() {
+                    public void run() {
+                        JOptionPane.showMessageDialog(null,
+                                "The referenced frames of reference do not match\n" +
+                                        "The following references were found: \n" +
+                                        refs,
+                                "Series: " + seriesName.getSeriesDescription(), JOptionPane.WARNING_MESSAGE);
+                    }
+                };
+                SwingUtilities.invokeLater(enable);
             }
         }
 

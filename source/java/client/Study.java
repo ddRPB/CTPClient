@@ -13,6 +13,8 @@ import java.util.*;
 
 import org.rsna.ui.RowLayout;
 
+import javax.swing.*;
+
 public class Study implements ActionListener, Comparable<Study> {
 
     private final LinkedList<FileName> list;
@@ -22,11 +24,15 @@ public class Study implements ActionListener, Comparable<Study> {
     private final String patientName;
     private final String studyDate;
     private final String siuid;
+    private final String patientID;
+    private final String gender;
+    private final String dateOfBirth;
     private String requiredStudyType = "";
     private boolean showDicomFiles = false;
     private boolean seriesVisible = true;
     private boolean wrongStudyType = false;
     private boolean wrongReferences = false;
+    private String refs;
 
     public Study(FileName fileName) {
         list = new LinkedList<FileName>();
@@ -38,6 +44,9 @@ public class Study implements ActionListener, Comparable<Study> {
         studyName = new StudyName(fileName);
         studyName.addActionListener(this);
         siuid = fileName.getStudyInstanceUID();
+        patientID = fileName.getPatientID();
+        gender = fileName.getPatientGender();
+        dateOfBirth  =fileName.getPatientBirthday();
         add(fileName);
     }
 
@@ -210,11 +219,14 @@ public class Study implements ActionListener, Comparable<Study> {
         return wrongReferences;
     }
 
+    public String getStudyType() {
+        return studyName.getClassification();
+    }
+
     private void checkStudyType() {
 
         if (!studyName.getClassification().equals(requiredStudyType)) {
             wrongStudyType = true;
-            //return false;
         }
 
         if (requiredStudyType.equals("Contouring")) {
@@ -258,6 +270,22 @@ public class Study implements ActionListener, Comparable<Study> {
         }
     }
 
+    public String getPatientname() {
+        return patientName;
+    }
+
+    public String getPatientID() {
+        return patientID;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public String getPatientBirthDate() {
+        return dateOfBirth;
+    }
+
     public Series[] getSeries() {
         Series[] series = new Series[seriesTable.size()];
         series = seriesTable.values().toArray(series);
@@ -273,7 +301,45 @@ public class Study implements ActionListener, Comparable<Study> {
         studyName.setNumberOfSeries(seriesTable.size());
         if (!checkFrameOfRef() && (studyName.getClassification().equals("TreatmentPlan") ||
                 studyName.getClassification().equals("Contouring"))) {
-            studyName.setFrameOfRefInfo();
+            refs = "";
+            LinkedList<String> tempList = new LinkedList<String>();
+            for (String k : seriesTable.keySet()) {
+                String temp = seriesTable.get(k).getFrameOfRef();
+                if (temp.isEmpty()) {
+                    tempList.add("empty reference");
+                } else {
+                    tempList.add(temp);
+                }
+            }
+            do {
+                String t = tempList.getFirst();
+                int occurences = Collections.frequency(tempList, t);
+                String desc = "";
+                refs += occurences + "x " + t + "\n";
+                if (occurences == 1){
+                    for (String k : seriesTable.keySet()) {
+                        if (seriesTable.get(k).getFrameOfRef().equals(t)) {
+                            refs = refs.trim() + " - (" + seriesTable.get(k).getSeriesDescription() + ")\n";
+                        }
+                    }
+                }
+                tempList.removeAll(Collections.singleton(t));
+            } while (tempList.size() > 0);
+
+            Log.getInstance().append("Study: " + studyName.getStudyDescription() + "\n" +
+                    "The following references were found: \n" +
+                    refs);
+
+            Runnable enable = new Runnable() {
+                public void run() {
+                    JOptionPane.showMessageDialog(null,
+                            "The referenced frames of reference do not match\n" +
+                                    "The following references were found: \n" +
+                                    refs,
+                            "Study: " + studyName.getStudyDescription(), JOptionPane.WARNING_MESSAGE);
+                }
+            };
+            SwingUtilities.invokeLater(enable);
         }
 
         checkStudyType();
