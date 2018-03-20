@@ -107,35 +107,17 @@ public class SenderThread extends Thread {
 
         LinkedList<FileName> fileNames = new LinkedList<FileName>();
         Study[] studies = studyList.getStudies();
-        boolean isStudySelected = false;
-        boolean genderCheck = true;
         for (Study study : studies) {
-            if (study.isSelected()) isStudySelected = true;
             Series[] series = study.getSeries();
             for (Series s : series) {
                 if (s.isSelected()) {
                     FileName[] names = s.getFileNames();
                     for (FileName name : names) {
                         if (name.isSelected()) {
-                            if (!name.getPatientGender().equals(studyList.getGender())) {
-                                genderCheck = false;
-                            }
                             fileNames.add(name);
                         }
                     }
                 }
-            }
-        }
-
-        if (!isStudySelected) {
-            parent.abortTransmission();
-            return;
-        }
-
-        if (parent.checkGender()) {
-            if (!genderCheck) {
-                parent.showGenderWarning();
-                return;
             }
         }
 
@@ -191,7 +173,7 @@ public class SenderThread extends Thread {
                             String siuid = dob.getSeriesInstanceUID();
                             if (parent.siUIDtoNewDescription.containsKey(siuid)) {
 
-                                String modality = dob.getModality();
+/*                                String modality = dob.getModality();
                                 switch (modality) {
                                     case "RTDOSE":
                                         dob.setElementValue(Tags.DoseComment, parent.siUIDtoNewDescription.get(siuid));
@@ -214,7 +196,8 @@ public class SenderThread extends Thread {
                                     default:
                                         dob.setElementValue(Tags.SeriesDescription, parent.siUIDtoNewDescription.get(siuid));
                                         break;
-                                }
+                                }*/
+                                dob.setElementValue(Tags.SeriesDescription, parent.siUIDtoNewDescription.get(siuid));
                                 cleanupFile = true;
                             }
 

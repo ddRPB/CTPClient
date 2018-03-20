@@ -24,11 +24,12 @@ public class StudyList implements ActionListener {
     private final boolean showDicomFiles;
     private final FileFilter filesOnlyFilter = new FilesOnlyFilter();
     private final FileFilter directoriesOnlyFilter = new DirectoriesOnlyFilter();
-    boolean wrongStudyType = false;
+    private boolean wrongStudyType = false;
     boolean wrongReferences = false;
     private String firstStudy = null;
     private String studyType = "";
-    private String gender = "";
+    private String birthdate = "";
+    private String patientsGender = "";
 
     public StudyList(File directory, boolean radioMode,
                      boolean acceptNonImageObjects, boolean showDicomFiles) {
@@ -69,12 +70,20 @@ public class StudyList implements ActionListener {
         studyType = st;
     }
 
-    public String getGender() {
-        return gender;
+    public String getPatientsGender() {
+        return patientsGender;
     }
 
-    public void setGender(String st) {
-        gender = st;
+    public String getPatientBirthDate() {
+        return birthdate;
+    }
+
+    public String getPatientBirthYear() {
+        return birthdate.substring(0, 4);
+    }
+
+    public boolean isStudyTypeWrong() {
+        return wrongStudyType;
     }
 
     public Study[] getStudies() {
@@ -133,6 +142,8 @@ public class StudyList implements ActionListener {
                     study.display(dp);
                     wrongStudyType = study.isStudyTypeWrong();
                     wrongReferences = study.isReferenceWrong();
+                    birthdate = study.getPatientBirthDate();
+                    patientsGender = study.getGender();
                 }
             }
         }

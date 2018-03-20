@@ -17,7 +17,6 @@ public class StudyName extends JButton {
     private String classification = "";
     private final FileName fn;
     private final LinkedList<String> modalities;
-    private String frameInfo = "";
     private String studyDescription;
 
     public StudyName(FileName fileName) {
@@ -42,12 +41,6 @@ public class StudyName extends JButton {
 
     public void setNumberOfSeries(int i) {
         numberOfSeries = i;
-        updateName();
-    }
-
-    public void setFrameOfRefInfo() {
-        setForeground(Color.red);
-        frameInfo = " !FrameOfRef!";
         updateName();
     }
 

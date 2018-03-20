@@ -301,7 +301,7 @@ public class FileName implements Comparable<FileName> {
     }
 
     public String getPatientBirthday() {
-        return fixDate(dob.getElementValue(Tags.PatientBirthDate));
+        return dob.getElementValue(Tags.PatientBirthDate);
     }
 
     public String getPatientID() {

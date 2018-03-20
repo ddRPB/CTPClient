@@ -34,6 +34,7 @@ import org.rsna.util.StringUtil;
 import org.rsna.util.XmlUtil;
 import org.w3c.dom.Document;
 
+@SuppressWarnings("ALL")
 public class CTPClient extends JFrame implements ActionListener, ComponentListener {
 
     private static final String title = "CTP Client - DKTK";
@@ -52,8 +53,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private final FieldButton startButton;
     private final FieldButton showLogButton;
     private final FieldButton instructionsButton;
-    private final FieldButton changeStudyDescriptionButton;
-    private final FieldButton changeSeriesDescriptionButton;
     private final AttachedFrame instructionsFrame;
     private final boolean dfEnabled;
     private final boolean dpaEnabled;
@@ -69,8 +68,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private final String stowURL;
     private final String stowUsername;
     private final String stowPassword;
-    private final String studyType;
-    private final String gender;
+    private final String requiredStudyType;
+    private final String requiredGender;
+    private final String requiredPatientsBirthDate;
     String newStudyDescription = null;
     private volatile boolean sending = false;
     private FieldButton showMemoryButton = null;
@@ -84,10 +84,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private String ipAddressString = "";
     private File exportDirectory = null;
     private StudyList studyList = null;
-    private String oldStudyDescription = null;
     private JButton studyDescriptionButton;
     private JButton seriesDescriptionButton;
-    private JTextField newGenderField;
     private JTextField newDescField;
     private JTextField descField;
     private JButton okButton;
@@ -124,7 +122,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         dicomURL = config.getProperty("dicomURL", "");
 
         //Get the gender of the patient to crosscheck
-        gender = config.getProperty("gender");
+        requiredGender = config.getProperty("gender");
 
         //Get the DICOM STOWRS export parameters
         stowURL = config.getProperty("stowURL", "");
@@ -146,7 +144,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         getContentPane().add(panel, BorderLayout.CENTER);
 
         //Get the study type to crosscheck later on
-        studyType = config.getProperty("studyType");
+        requiredStudyType = config.getProperty("studyType");
+        //Get the birth date to crosscheck later on
+        requiredPatientsBirthDate = Objects.toString(config.getProperty("birthDate"), "");
 
         //Set the SSL params
         getKeystore();
@@ -197,16 +197,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         startButton.setEnabled(false);
         startButton.addActionListener(this);
 
-        changeStudyDescriptionButton = new FieldButton("Change Study Description");
-        changeStudyDescriptionButton.setVisible(false);
-        changeStudyDescriptionButton.setEnabled(false);
-        changeStudyDescriptionButton.addActionListener(this);
-
-        changeSeriesDescriptionButton = new FieldButton("Change Series Description");
-        changeSeriesDescriptionButton.setVisible(false);
-        changeSeriesDescriptionButton.setEnabled(false);
-        changeSeriesDescriptionButton.addActionListener(this);
-
         siUIDtoNewDescription = new HashMap<String, String>();
 
         //Make the header panel
@@ -254,18 +244,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         if (scpPort > 0) {
             buttonBox.add(scpButton);
-        }
-
-        boolean showChangeStudyDescriptionButton = true;
-        if (showChangeStudyDescriptionButton) {
-            buttonBox.add(Box.createHorizontalStrut(20));
-            buttonBox.add(changeStudyDescriptionButton);
-        }
-
-        boolean showChangeSeriesDescriptionButton = true;
-        if (showChangeSeriesDescriptionButton) {
-            buttonBox.add(Box.createHorizontalStrut(20));
-            buttonBox.add(changeSeriesDescriptionButton);
         }
 
         String helpURL = config.getProperty("helpURL", "").trim();
@@ -359,6 +337,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     }
 
     //.Implement the ActionListener interface
+    @SuppressWarnings("SpellCheckingInspection")
     public void actionPerformed(ActionEvent event) {
         boolean radioMode = (dialog != null) && dialog.studyMode();
         boolean anio = getAcceptNonImageObjects();
@@ -370,19 +349,28 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 dp.clear();
                 dp.setDeleteOnSuccess(false);
                 studyList = new StudyList(dir, radioMode, anio, chkFiles.isSelected());
-                studyList.setRequiredStudyType(studyType);
-                studyList.setGender(gender);
+                studyList.setRequiredStudyType(requiredStudyType);
                 studyList.display(dp);
                 studyList.selectFirstStudy();
                 startButton.setEnabled(true);
-                changeStudyDescriptionButton.setEnabled(true);
-                changeSeriesDescriptionButton.setEnabled(true);
-                if (studyList.wrongStudyType) {
+                if (studyList.isStudyTypeWrong()) {
                     startButton.setEnabled(false);
                     showSelectionInfo("studyType");
                 } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
+                } else if ((requiredPatientsBirthDate.length() == 4
+                        && !requiredPatientsBirthDate.equals(studyList.getPatientBirthYear()))
+                        || (requiredPatientsBirthDate.length() == 8
+                        && !requiredPatientsBirthDate.equals(studyList.getPatientBirthDate()))){
+                    startButton.setEnabled(false);
+                    System.out.println(studyList.getPatientBirthYear());
+                    System.out.println(studyList.getPatientBirthDate());
+                    System.out.println(requiredPatientsBirthDate);
+                    showSelectionInfo("birthdate");
+                } else if (!requiredGender.equals(studyList.getPatientsGender())) {
+                    startButton.setEnabled(false);
+                    showSelectionInfo("gender");
                 }
                 sp.getVerticalScrollBar().setValue(0);
                 setWaitCursor(false);
@@ -394,19 +382,22 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 dp.setDeleteOnSuccess(true);
                 studyList = new StudyList(scpDirectory, radioMode,
                         anio, chkFiles.isSelected());
-                studyList.setRequiredStudyType(studyType);
-                studyList.setGender(gender);
+                studyList.setRequiredStudyType(requiredStudyType);
                 studyList.display(dp);
                 studyList.selectFirstStudy();
                 startButton.setEnabled(true);
-                changeStudyDescriptionButton.setEnabled(true);
-                changeSeriesDescriptionButton.setEnabled(true);
-                if (studyList.wrongStudyType) {
+                if (studyList.isStudyTypeWrong()) {
                     startButton.setEnabled(false);
                     showSelectionInfo("studyType");
                 } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
+                } else if ((requiredPatientsBirthDate.length() == 4
+                        && !requiredPatientsBirthDate.equals(studyList.getPatientBirthYear()))
+                        || (requiredPatientsBirthDate.length() == 8
+                        && !requiredPatientsBirthDate.equals(studyList.getPatientBirthDate()))){
+                    startButton.setEnabled(false);
+                    showSelectionInfo("birthdate");
                 }
                 sp.getVerticalScrollBar().setValue(0);
                 setWaitCursor(false);
@@ -415,20 +406,45 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
             displayDialog();
         } else if (source.equals(startButton)) {
             if (displayDialog()) {
-                startButton.setEnabled(false);
-                dialogButton.setEnabled(false);
-                browseButton.setEnabled(false);
-                scpButton.setEnabled(false);
-                sending = true;
 
-                //show window to change study/series descriptions
-                this.setEnabled(false);
-                this.setVisible(false);
-                showUserDialog();
+                Study[] studies = studyList.getStudies();
+                int numberOfSelectedStudies = 0;
+                for (Study study : studies) {
+                    if (study.isSelected()) {
+                        numberOfSelectedStudies++;
+                    }
+                }
+                if (numberOfSelectedStudies != 1) {
+                    final JFrame parent = this;
+                    Runnable enable = new Runnable() {
+
+                        public void run() {
+                            JOptionPane.showMessageDialog(parent,
+                                    "You have to select exactly one study in order to proceed.",
+                                    "Information", JOptionPane.WARNING_MESSAGE);
+                        }
+                    };
+                    SwingUtilities.invokeLater(enable);
+
+                }
+                else {
+
+                    startButton.setEnabled(false);
+                    dialogButton.setEnabled(false);
+                    browseButton.setEnabled(false);
+                    scpButton.setEnabled(false);
+                    sending = true;
+
+                    //show window to change study/series descriptions
+                    this.setEnabled(false);
+                    this.setVisible(false);
+                    showUserDialog();
 
 
-                //SenderThread sender = new SenderThread(this);
-                //sender.start();
+                    //SenderThread sender = new SenderThread(this);
+                    //sender.start();
+                }
+
             }
         } else if (source.equals(helpButton)) {
             String helpURL = config.getProperty("helpURL");
@@ -443,82 +459,19 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
             instructionsFrame.attachTo(this);
             instructionsFrame.setVisible(true);
             this.requestFocus();
-        } else if (source.equals(changeStudyDescriptionButton)) {
-
-            Study[] studies = studyList.getStudies();
-            Study selectedStudy = null;
-            int numberOfSelectedStudies = 0;
-            for (Study study : studies) {
-                if (study.isSelected()) {
-                    numberOfSelectedStudies++;
-                    oldStudyDescription = study.getStudyDescription();
-                    selectedStudy = study;
-                }
-
-            }
-            if (numberOfSelectedStudies != 1) {
-                final JFrame parent = this;
-                Runnable enable = new Runnable() {
-
-                    public void run() {
-                        JOptionPane.showMessageDialog(parent,
-                                "You have to select exactly one study in order to proceed.",
-                                "Information", JOptionPane.WARNING_MESSAGE);
-                    }
-                };
-                SwingUtilities.invokeLater(enable);
-            } else {
-                final JFrame parent = this;
-                Object selection = JOptionPane.showInputDialog(parent, "old study description: " + oldStudyDescription +
-                                "\nnew study Description: ",
-                        "New Study Description", JOptionPane.QUESTION_MESSAGE, null, null, newStudyDescription);
-                if (selection != null) {
-                    newStudyDescription = selection.toString();
-                    selectedStudy.updateStudyDescription(newStudyDescription);
-                }
-            }
-        } else if (source.equals(changeSeriesDescriptionButton)) {
-
-            Study[] studies = studyList.getStudies();
-            Series selectedSeries = null;
-            int numberOfSelectedSeries = 0;
-            for (Study study : studies) {
-                Series[] series = study.getSeries();
-                for (Series s : series) {
-                    if (s.isSelected()) {
-                        numberOfSelectedSeries++;
-                        selectedSeries = s;
-                    }
-                }
-            }
-            if (numberOfSelectedSeries != 1) {
-                final JFrame parent = this;
-                Runnable enable = new Runnable() {
-
-                    public void run() {
-                        JOptionPane.showMessageDialog(parent,
-                                "You have to select exactly one series in order to proceed.",
-                                "Information", JOptionPane.WARNING_MESSAGE);
-                    }
-                };
-                SwingUtilities.invokeLater(enable);
-            } else {
-                final JFrame parent = this;
-                Object selection = JOptionPane.showInputDialog(parent, "old series description: "
-                                + selectedSeries.getSeriesDescription() +
-                                "\nnew series Description: ",
-                        "New Series Description", JOptionPane.QUESTION_MESSAGE, null, null,
-                        getNewSeriesDescription(selectedSeries.getSeriesInstanceUID()));
-                if (selection != null) {
-                    selectedSeries.updateSeriesDescription(selection.toString());
-                    siUIDtoNewDescription.put(selectedSeries.getSeriesInstanceUID(),
-                            selection.toString());
-                }
-            }
         } else if (source.equals(studyDescriptionButton)) {
             newDescField.setText(descField.getText());
 
         } else if (source.equals(okButton)) {
+            // the new Study Description
+            newStudyDescription = newDescField.getText();
+
+            // the new Series Description
+            for (int i = 0; i < seriesTableModel.getRowCount(); i++) {
+                siUIDtoNewDescription.put(seriesTableModel.getValueAt(i, 3).toString(),
+                        seriesTableModel.getValueAt(i, 2).toString());
+            }
+
             userDialogFrame.setEnabled(false);
             userDialogFrame.setVisible(false);
             this.setEnabled(true);
@@ -530,13 +483,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 seriesTableModel.setValueAt(seriesTableModel.getValueAt(i, 1), i, 2);
             }
         }
-    }
-
-    private String getNewSeriesDescription(String siuid) {
-        if (siUIDtoNewDescription.containsKey(siuid)) {
-            return siUIDtoNewDescription.get(siuid);
-        }
-        return null;
     }
 
     private void setWaitCursor(boolean on) {
@@ -666,30 +612,13 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         SwingUtilities.invokeLater(enable);
     }
 
-    public void abortTransmission() {
-        final JFrame parent = this;
-        Runnable enable = new Runnable() {
-
-            public void run() {
-                scpButton.setEnabled(true);
-                browseButton.setEnabled(true);
-                dialogButton.setEnabled(true);
-                startButton.setEnabled(true);
-                JOptionPane.showMessageDialog(parent,
-                        "You have to select at least one study in order to proceed.",
-                        "Information", JOptionPane.WARNING_MESSAGE);
-            }
-        };
-        sending = false;
-        SwingUtilities.invokeLater(enable);
-    }
-
     private void showSelectionInfo(String infoType) {
         final JFrame parent = this;
+        String infoString = "";
 
         switch (infoType) {
             case "studyType": {
-                Runnable enable = new Runnable() {
+/*                Runnable enable = new Runnable() {
                     public void run() {
                         JOptionPane.showMessageDialog(parent,
                                 "The files do not comply with the required study type.\n" +
@@ -697,11 +626,13 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                                 "Information", JOptionPane.WARNING_MESSAGE);
                     }
                 };
-                SwingUtilities.invokeLater(enable);
+                SwingUtilities.invokeLater(enable);*/
+                infoString = "The files do not comply with the required study type.\n" +
+                        "Please choose another study.";
                 break;
             }
             case "references": {
-                Runnable enable = new Runnable() {
+/*                Runnable enable = new Runnable() {
                     public void run() {
                         JOptionPane.showMessageDialog(parent,
                                 "The files do not refer to each other (in relation to the required study type).\n" +
@@ -709,48 +640,73 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                                 "Information", JOptionPane.WARNING_MESSAGE);
                     }
                 };
-                SwingUtilities.invokeLater(enable);
+                SwingUtilities.invokeLater(enable);*/
+                infoString = "The files do not refer to each other (in relation to the required study type).\n" +
+                        "Please choose another study.";
+                break;
+            }
+            case "birthdate": {
+/*                Runnable enable = new Runnable() {
+                    public void run() {
+                        JOptionPane.showMessageDialog(parent,
+                                "The Patient's Birth Date of the files does not match the required one.\n" +
+                                        "Please choose another patient.",
+                                "Information", JOptionPane.WARNING_MESSAGE);
+                    }
+                };
+                SwingUtilities.invokeLater(enable);*/
+                infoString = "The Patient's Birth Date of the files does not match the required one.\n" +
+                        "Please choose another patient.";
+                break;
+            }
+            case "gender": {
+/*                Runnable enable = new Runnable() {
+                    public void run() {
+                        JOptionPane.showMessageDialog(parent,
+                                "The Patient's gender of the files does not match the required one.\n" +
+                                        "Please choose another patient.",
+                                "Information", JOptionPane.WARNING_MESSAGE);
+                    }
+                };
+                SwingUtilities.invokeLater(enable);*/
+                infoString = "The Patient's gender of the files does not match the required one.\n" +
+                        "Please choose another patient.";
                 break;
             }
             default: {
-                Runnable enable = new Runnable() {
+/*                Runnable enable = new Runnable() {
                     public void run() {
                         JOptionPane.showMessageDialog(parent,
                                 "Unknown Error.",
                                 "Information", JOptionPane.WARNING_MESSAGE);
                     }
                 };
-                SwingUtilities.invokeLater(enable);
+                SwingUtilities.invokeLater(enable);*/
+                infoString = "Unknown Information.";
                 break;
             }
         }
-    }
 
-    public boolean checkGender() {
-        return gender != null;
-    }
-
-    public void showGenderWarning() {
-        final JFrame parent = this;
+        String finalInfoString = infoString;
         Runnable enable = new Runnable() {
-
             public void run() {
-                scpButton.setEnabled(true);
-                browseButton.setEnabled(true);
-                dialogButton.setEnabled(true);
-                startButton.setEnabled(true);
                 JOptionPane.showMessageDialog(parent,
-                        "You have selected files with a gender unequal to the requested one.",
+                        finalInfoString,
                         "Information", JOptionPane.WARNING_MESSAGE);
             }
         };
-        sending = false;
         SwingUtilities.invokeLater(enable);
     }
 
     public void showUserDialog () {
 
         Study studies[] = studyList.getStudies();
+        Study selectedStudy = null;
+        for (Study s : studies) {
+            if (s.isSelected()) {
+                selectedStudy = s;
+            }
+        }
 
         userDialogFrame = new JFrame("Selected DICOM Study");
         userDialogFrame.setLayout(new GridBagLayout());
@@ -770,7 +726,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         idPanel.setLayout(new FlowLayout());
 
         JLabel dicomPatientLabel = new JLabel("ID:         ");
-        JTextField idField = new JTextField(studies[0].getPatientID());
+        JTextField idField = new JTextField(selectedStudy.getPatientID());
         idField.setEnabled(false);
         idField.setBackground(Color.PINK);
         idField.setPreferredSize(new Dimension(250, 24));
@@ -791,7 +747,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         JLabel dicomNameLabel = new JLabel("Name:    ");
 
-        JTextField nameField = new JTextField(studies[0].getPatientname());
+        JTextField nameField = new JTextField(selectedStudy.getPatientname());
         nameField.setEnabled(false);
         nameField.setBackground(Color.PINK);
         nameField.setPreferredSize(new Dimension(250, 24));
@@ -810,12 +766,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         genderPanel.setLayout(new FlowLayout());
 
         JLabel dicomGenderLabel = new JLabel("Gender:  ");
-        JTextField genderField = new JTextField(studies[0].getGender());
+        JTextField genderField = new JTextField(selectedStudy.getGender());
         genderField.setEnabled(false);
         genderField.setBackground(Color.PINK);
         genderField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel03 = new JLabel(" -> ");
-        newGenderField = new JTextField();
+        JTextField newGenderField = new JTextField();
         newGenderField.setBackground(Color.GREEN);
         newGenderField.setPreferredSize(new Dimension(250, 24));
 
@@ -829,7 +785,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         dobPanel.setLayout(new FlowLayout());
 
         JLabel dicomDOBLabel = new JLabel("DOB:      ");
-        JTextField dobField = new JTextField(studies[0].getPatientBirthDate());
+        JTextField dobField = new JTextField(selectedStudy.getPatientBirthDate());
         dobField.setEnabled(false);
         dobField.setBackground(Color.PINK);
         dobField.setPreferredSize(new Dimension(250, 24));
@@ -859,7 +815,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         typePanel.setLayout(new FlowLayout());
 
         JLabel dicomTypeLabel = new JLabel("Study type: ");
-        JTextField typeField = new JTextField(studies[0].getStudyType());
+        JTextField typeField = new JTextField(selectedStudy.getStudyType());
         typeField.setEnabled(false);
         typeField.setBackground(Color.PINK);
         typeField.setPreferredSize(new Dimension(250, 24));
@@ -872,7 +828,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         descPanel.setLayout(new FlowLayout());
 
         JLabel dicomDescLabel = new JLabel("Description: ");
-        descField = new JTextField(studies[0].getStudyDescription());
+        descField = new JTextField(selectedStudy.getStudyDescription());
         descField.setEnabled(false);
         descField.setBackground(Color.PINK);
         descField.setPreferredSize(new Dimension(250, 24));
@@ -906,14 +862,29 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         String[] columnNames = {"Modality",
                 "original Description",
-                "new Description"};
+                "new Description",
+                "siUID"};
 
-        Object[][] data = {
-                {"RTSTRUCT", "oldName", ""},
-                {"CT", "blabla", ""}
-        };
+        // Parse the Studylist
+        LinkedList<String> dataList = new LinkedList<>();
+        for (Study study : studies) {
+            Series[] series = study.getSeries();
+            for (Series s : series) {
+                if (s.isSelected()) {
+                    dataList.add(s.getSeriesName().getModality());
+                    dataList.add(s.getSeriesDescription());
+                    dataList.add("");
+                    dataList.add(s.getSeriesName().getSeriesInstanceUID());
+                }
+            }
+        }
 
-        seriesTableModel = new DefaultTableModel(data, columnNames){
+        Object[][] tempData = new Object[dataList.size() / 4][4];
+        for (int i = 0; i < dataList.size(); i++) {
+            tempData[i / 4][i % 4] = dataList.get(i);
+        }
+
+        seriesTableModel = new DefaultTableModel(tempData, columnNames){
             @Override
             public boolean isCellEditable(int row, int column) {
                 // make read only fields except column 2

@@ -78,10 +78,6 @@ public class Series implements ActionListener, Comparable<Series> {
         }
     }
 
-    public void updateSeriesDescription(String seriesDescription) {
-        seriesName.changeDisplaySeriesDescription(seriesDescription);
-    }
-
     public int compareTo(Series series) {
         if (series == null) return 0;
         int c;

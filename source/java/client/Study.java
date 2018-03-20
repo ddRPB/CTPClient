@@ -132,10 +132,6 @@ public class Study implements ActionListener, Comparable<Study> {
         else deselectAll();
     }
 
-    public void updateStudyDescription(String studyDescription) {
-        studyName.changeDisplayedStudyDescription(studyDescription);
-    }
-
     private void selectAll() {
         DirectoryPanel dp = getDirectoryPanel();
         for (FileName fn : list) {
