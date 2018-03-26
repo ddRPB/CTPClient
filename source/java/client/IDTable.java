@@ -48,10 +48,10 @@ public class IDTable {
                     }
                     for (String key : table.keySet()) {
                         PatientInfo info = table.get(key);
-                        sb.append("\"=\"\"" + info.phiPatientName + "\"\"\",");
-                        sb.append("\"=\"\"" + info.phiPatientID + "\"\"\",");
-                        sb.append("\"=\"\"" + info.anonPatientID + "\"\"\",");
-                        sb.append("\"=\"\"" + info.datetime + "\"\"\"");
+                        sb.append("\"=\"\"").append(info.phiPatientName).append("\"\"\",");
+                        sb.append("\"=\"\"").append(info.phiPatientID).append("\"\"\",");
+                        sb.append("\"=\"\"").append(info.anonPatientID).append("\"\"\",");
+                        sb.append("\"=\"\"").append(info.datetime).append("\"\"\"");
                         sb.append("\n");
                     }
                 }

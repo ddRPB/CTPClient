@@ -221,8 +221,10 @@ public class Study implements ActionListener, Comparable<Study> {
 
     private void checkStudyType() {
 
-        if (!studyName.getClassification().equals(requiredStudyType)) {
+        if (!studyName.getClassification().equals(requiredStudyType)
+                && !requiredStudyType.equals("")) {
             wrongStudyType = true;
+            System.out.println("wrongStudyType 1");
         }
 
         if (requiredStudyType.equals("Contouring")) {
@@ -238,30 +240,47 @@ public class Study implements ActionListener, Comparable<Study> {
             }
             if (!ctSOPClassUID.equals(rtstructRefSOPClassUID)) {
                 wrongReferences = true;
-                //return false;
+                System.out.println("wrongRef 2");
             }
         } else if (requiredStudyType.equals("TreatmentPlan")) {
             String rtplanRefStructSOPInst = "";
             String rtplanRefDoseSOPInst = "";
             String rtstructSOPInstanceUID = "";
             String rtdoseSOPInstanceUID = "";
+            // RTDOSE -> RTPLAN
+            String refSOPinstanceUID = "";
+            String rtplanSOPInstanceUID = "";
+
             for (String k : seriesTable.keySet()) {
                 if (seriesTable.get(k).getSeriesName().getModality().equals("RTPLAN")) {
                     rtplanRefStructSOPInst = seriesTable.get(k).getRefStructSOPInst();
                     rtplanRefDoseSOPInst = seriesTable.get(k).getRefDoseSOPInst();
+                    rtplanSOPInstanceUID = seriesTable.get(k).getSOPInstanceUID();
                 }
                 if (seriesTable.get(k).getSeriesName().getModality().equals("RTSTRUCT")) {
                     rtstructSOPInstanceUID = seriesTable.get(k).getSOPInstanceUID();
                 }
                 if (seriesTable.get(k).getSeriesName().getModality().equals("RTDOSE")) {
                     rtdoseSOPInstanceUID = seriesTable.get(k).getSOPInstanceUID();
+                    refSOPinstanceUID = seriesTable.get(k).getRefSOPinstanceUID();
                 }
             }
 
-            if (!rtplanRefStructSOPInst.equals(rtstructSOPInstanceUID) ||
-                    !rtplanRefDoseSOPInst.equals(rtdoseSOPInstanceUID)) {
+            if (!rtplanRefStructSOPInst.equals("") && !rtplanRefDoseSOPInst.equals("") &&
+                    (!rtplanRefStructSOPInst.equals(rtstructSOPInstanceUID) ||
+                    !rtplanRefDoseSOPInst.equals(rtdoseSOPInstanceUID))) {
                 wrongReferences = true;
-                //return false;
+                System.out.println("wrongRef 3");
+                System.out.println("rtplanRefStructSOPInst: " + rtplanRefStructSOPInst);
+                System.out.println("rtstructSOPInstanceUID: " + rtstructSOPInstanceUID);
+                System.out.println("rtplanRefDoseSOPInst: " + rtplanRefDoseSOPInst);
+                System.out.println("rtdoseSOPInstanceUID: " + rtdoseSOPInstanceUID);
+            }
+
+            if (!refSOPinstanceUID.equals("") &&
+                    !refSOPinstanceUID.equals(rtplanSOPInstanceUID)) {
+                wrongReferences = true;
+                System.out.println("wrongRef 4");
             }
         }
     }
@@ -310,7 +329,6 @@ public class Study implements ActionListener, Comparable<Study> {
             do {
                 String t = tempList.getFirst();
                 int occurences = Collections.frequency(tempList, t);
-                String desc = "";
                 refs += occurences + "x " + t + "\n";
                 if (occurences == 1){
                     for (String k : seriesTable.keySet()) {

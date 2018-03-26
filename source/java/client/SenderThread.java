@@ -30,6 +30,8 @@ import org.rsna.util.*;
 
 import org.dcm4che.dict.DictionaryFactory;
 
+import javax.swing.*;
+
 public class SenderThread extends Thread {
 
     private final StudyList studyList;
@@ -38,7 +40,6 @@ public class SenderThread extends Thread {
 
     private final String stowURLString;
     private String username;
-    private String password;
     private boolean authenticate;
     private String authHeader = "";
 
@@ -95,7 +96,7 @@ public class SenderThread extends Thread {
 
         this.stowURLString = parent.getSTOWURL();
         this.username = parent.getSTOWUsername();
-        this.password = parent.getSTOWPassword();
+        String password = parent.getSTOWPassword();
         this.authenticate = (username != null) && !username.equals("");
         if (authenticate) {
             this.authHeader = "Basic " + org.rsna.util.Base64.encodeToString((username + ":" + password).getBytes());
@@ -137,7 +138,11 @@ public class SenderThread extends Thread {
             File file = fn.getFile();
             StatusText fileStatus = fn.getStatusText();
 
-            statusPane.setText("Sending " + (++fileNumber) + "/" + nFiles + " (" + file.getName() + ")");
+            //statusPane.setText("Sending " + (++fileNumber) + "/" + nFiles + " (" + file.getName() + ")");
+            parent.pBar.setVisible(true);
+            parent.pBar.setString("Sending " + (++fileNumber) + "/" + nFiles + " (" + file.getName() + ")");
+            parent.pBar.setValue(Math.round(((float)100 / nFiles) * fileNumber));
+            parent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
             try {
                 //See what kind of object it is
@@ -172,33 +177,33 @@ public class SenderThread extends Thread {
                             // in the appropriate tag of the modality
                             String siuid = dob.getSeriesInstanceUID();
                             if (parent.siUIDtoNewDescription.containsKey(siuid)) {
-
-/*                                String modality = dob.getModality();
-                                switch (modality) {
-                                    case "RTDOSE":
-                                        dob.setElementValue(Tags.DoseComment, parent.siUIDtoNewDescription.get(siuid));
-                                        break;
-                                    case "RTPLAN":
-                                        dob.setElementValue(Tags.RTPlanLabel, parent.siUIDtoNewDescription.get(siuid));
-                                        dob.setElementValue(Tags.RTPlanName, parent.siUIDtoNewDescription.get(siuid));
-                                        dob.setElementValue(Tags.RTPlanDescription, parent.siUIDtoNewDescription.get(siuid));
-                                        break;
-                                    case "RTSTRUCT":
-                                        dob.setElementValue(Tags.StructureSetLabel, parent.siUIDtoNewDescription.get(siuid));
-                                        dob.setElementValue(Tags.StructureSetName, parent.siUIDtoNewDescription.get(siuid));
-                                        dob.setElementValue(Tags.StructureSetDescription, parent.siUIDtoNewDescription.get(siuid));
-                                        break;
-                                    case "RTIMAGE":
-                                        dob.setElementValue(Tags.RTImageName, parent.siUIDtoNewDescription.get(siuid));
-                                        dob.setElementValue(Tags.RTImageLabel, parent.siUIDtoNewDescription.get(siuid));
-                                        dob.setElementValue(Tags.RTImageDescription, parent.siUIDtoNewDescription.get(siuid));
-                                        break;
-                                    default:
-                                        dob.setElementValue(Tags.SeriesDescription, parent.siUIDtoNewDescription.get(siuid));
-                                        break;
-                                }*/
                                 dob.setElementValue(Tags.SeriesDescription, parent.siUIDtoNewDescription.get(siuid));
                                 cleanupFile = true;
+                            }
+
+                            String modality = dob.getModality();
+                            switch (modality) {
+                                case "RTDOSE":
+                                    dob.setElementValue(Tags.DoseComment, parent.tagToNewRTDesc.get("DoseComment"));
+                                    break;
+                                case "RTPLAN":
+                                    dob.setElementValue(Tags.RTPlanLabel, parent.tagToNewRTDesc.get("RTPlanLabel"));
+                                    dob.setElementValue(Tags.RTPlanName, parent.tagToNewRTDesc.get("RTPlanName"));
+                                    dob.setElementValue(Tags.RTPlanDescription, parent.tagToNewRTDesc.get("RTPlanDescription"));
+                                    break;
+                                case "RTSTRUCT":
+                                    dob.setElementValue(Tags.StructureSetLabel, parent.tagToNewRTDesc.get("StructureSetLabel"));
+                                    dob.setElementValue(Tags.StructureSetName, parent.tagToNewRTDesc.get("StructureSetName"));
+                                    dob.setElementValue(Tags.StructureSetDescription, parent.tagToNewRTDesc.get("StructureSetDescription"));
+                                    break;
+                                case "RTIMAGE":
+                                    dob.setElementValue(Tags.RTImageName, parent.tagToNewRTDesc.get("RTImageName"));
+                                    dob.setElementValue(Tags.RTImageLabel, parent.tagToNewRTDesc.get("RTImageLabel"));
+                                    dob.setElementValue(Tags.RTImageDescription, parent.tagToNewRTDesc.get("RTImageDescription"));
+                                    break;
+                                default:
+
+                                    break;
                             }
 
                             if (cleanupFile) {
@@ -279,6 +284,10 @@ public class SenderThread extends Thread {
                         + "\n" + sw.toString());
             }
         }
+
+        parent.pBar.setString("Processing complete");
+        parent.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+
         if (scu != null) scu.close();
         if (integerTable != null) integerTable.close();
         String resultText = "Processsing complete: ";

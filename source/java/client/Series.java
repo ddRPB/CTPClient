@@ -27,8 +27,6 @@ public class Series implements ActionListener, Comparable<Series> {
     private boolean showDicomFiles = false;
     private boolean roisVisible = true;
 
-    private String refs;
-
     public Series(FileName fileName) {
         fn = fileName;
         list = new LinkedList<FileName>();
@@ -179,6 +177,13 @@ public class Series implements ActionListener, Comparable<Series> {
         return fn.getRefDoseSOPInst();
     }
 
+    public String getRefSOPinstanceUID() {
+        if (fn.getListRefRTPlanSequence().size() == 1) {
+            return fn.getListRefRTPlanSequence().getFirst();
+        }
+        return "";
+    }
+
     public FileName[] getFileNames() {
         FileName[] names = new FileName[list.size()];
         names = list.toArray(names);
@@ -212,6 +217,46 @@ public class Series implements ActionListener, Comparable<Series> {
                 && list.getFirst().hasROIonlyOneRefFrameOfRefUID();
     }
 
+    public String getRTDoseComment() {
+        return fn.getRtDoseComment();
+    }
+
+    public String getRTPlanLabel() {
+        return fn.getRtPlanLabel();
+    }
+
+    public String getRTPlanName() {
+        return fn.getRtPlanName();
+    }
+
+    public String getRTPlanDescription() {
+        return fn.getRtPlanDescription();
+    }
+
+    public String getSSLabel() {
+        return fn.getSsLabel();
+    }
+
+    public String getSSName() {
+        return fn.getSsName();
+    }
+
+    public String getSSDescription() {
+        return fn.getSsDescription();
+    }
+
+    public String getRTImageName() {
+        return fn.getRtImageName();
+    }
+
+    public String getRTImageLabel() {
+        return fn.getRtImageLabel();
+    }
+
+    public String getRTImageDescription() {
+        return fn.getRtImageDescription();
+    }
+
     public void display(DirectoryPanel dp) {
         dp.add(cb);
         seriesName.setNumberOfFiles(list.size());
@@ -226,9 +271,9 @@ public class Series implements ActionListener, Comparable<Series> {
                     r.display(dp);
                 }
             } else {
-                refs = "";
+                StringBuilder sb = new StringBuilder();
                 for (String ref : list.getFirst().getListRoiRefFrameOfRef()) {
-                    refs += ref + "\n";
+                    sb.append(ref + "\n");
                 }
 
                 Runnable enable = new Runnable() {
@@ -236,7 +281,7 @@ public class Series implements ActionListener, Comparable<Series> {
                         JOptionPane.showMessageDialog(null,
                                 "The referenced frames of reference do not match\n" +
                                         "The following references were found: \n" +
-                                        refs,
+                                        sb.toString(),
                                 "Series: " + seriesName.getSeriesDescription(), JOptionPane.WARNING_MESSAGE);
                     }
                 };

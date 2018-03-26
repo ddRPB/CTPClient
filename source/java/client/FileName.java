@@ -32,6 +32,7 @@ public class FileName implements Comparable<FileName> {
     private final LinkedList<String> listRefROINumber;
     private final LinkedList<String> listROIObservationLabel;
     private final LinkedList<String> listROIInterpretedType;
+    private final LinkedList<String> listRefRTPlanSequence;
     private String patientName = "";
     private String patientID = "";
     private String studyInstanceUID = "";
@@ -52,6 +53,16 @@ public class FileName implements Comparable<FileName> {
     private String refStructSOPInst = "";
     private String refDoseSOPInst = "";
     private DicomObject dob;
+    private String rtDoseComment = "";
+    private String rtPlanLabel = "";
+    private String rtPlanName = "";
+    private String rtPlanDescription = "";
+    private String ssLabel = "";
+    private String ssName = "";
+    private String ssDescription = "";
+    private String rtImageName = "";
+    private String rtImageLabel = "";
+    private String rtImageDescription = "";
 
     public FileName(File file) {
         this.file = file;
@@ -63,6 +74,7 @@ public class FileName implements Comparable<FileName> {
         listROIInterpretedType = new LinkedList<String>();
         listRoiRefFrameOfRef = new LinkedList<String>();
         listRefFrameOfRefFrameOfRefUID = new LinkedList<String>();
+        listRefRTPlanSequence = new LinkedList<String>();
         statusText = new StatusText();
         fileSize = new FileSize(file);
         try {
@@ -89,15 +101,29 @@ public class FileName implements Comparable<FileName> {
             switch (modality) {
                 case "RTDOSE":
                     seriesDescription = fixNull(dob.getElementValue(Tags.DoseComment));
+                    rtDoseComment = seriesDescription;
                     seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
+
+                    // for RTDOSE -> RTPLAN check
+                    DcmElement refRTPlanSeq = dob.getDataset().get(Tags.RefRTPlanSeq);
+                    if (refRTPlanSeq != null) {
+                        for (int i = 0; i < refRTPlanSeq.countItems(); i++) {
+                            Dataset dcm = refRTPlanSeq.getItem(i);
+                            listRefRTPlanSequence.add(dcm.getString(Tags.RefSOPInstanceUID));
+                        }
+                    }
+
                     break;
                 case "RTPLAN":
                     seriesDescription = fixNull(dob.getElementValue(Tags.RTPlanLabel));
+                    rtPlanLabel = seriesDescription;
                     if (seriesDescription.equals("")) {
                         seriesDescription = fixNull(dob.getElementValue(Tags.RTPlanName));
+                        rtPlanName = seriesDescription;
                     }
                     if (seriesDescription.equals("")) {
                         seriesDescription = fixNull(dob.getElementValue(Tags.RTPlanDescription));
+                        rtPlanDescription = seriesDescription;
                     }
                     seriesDate = fixDate(dob.getElementValue(Tags.RTPlanDate));
 
@@ -119,7 +145,9 @@ public class FileName implements Comparable<FileName> {
                     break;
                 case "RTSTRUCT":
                     seriesDescription = fixNull(dob.getElementValue(Tags.StructureSetLabel));
+                    ssLabel = seriesDescription;
                     String temp = fixNull(dob.getElementValue(Tags.StructureSetName));
+                    ssName = temp;
                     if (seriesDescription.equals("")) {
                         seriesDescription += temp;
                     } else {
@@ -128,6 +156,7 @@ public class FileName implements Comparable<FileName> {
 
                     if (seriesDescription.equals("")) {
                         seriesDescription = fixNull(dob.getElementValue(Tags.StructureSetDescription));
+                        ssDescription = seriesDescription;
                     }
                     seriesDate = fixDate(dob.getElementValue(Tags.StructureSetDate));
 
@@ -135,11 +164,14 @@ public class FileName implements Comparable<FileName> {
                     break;
                 case "RTIMAGE":
                     seriesDescription = fixNull(dob.getElementValue(Tags.RTImageName));
+                    rtImageName = seriesDescription;
                     if (seriesDescription.equals("")) {
                         seriesDescription = fixNull(dob.getElementValue(Tags.RTImageLabel));
+                        rtImageLabel = seriesDescription;
                     }
                     if (seriesDescription.equals("")) {
                         seriesDescription = fixNull(dob.getElementValue(Tags.RTImageDescription));
+                        rtImageDescription = seriesDescription;
                     }
                     seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
                     break;
@@ -225,6 +257,48 @@ public class FileName implements Comparable<FileName> {
         }
     }
 
+    public String getRtPlanLabel() {
+        return rtPlanLabel;
+    }
+
+    public String getRtPlanName() {
+        return rtPlanName;
+    }
+
+    public String getRtPlanDescription() {
+        return rtPlanDescription;
+    }
+
+    public String getSsLabel() {
+        return ssLabel;
+    }
+
+    public String getSsName() {
+        return ssName;
+    }
+
+    public String getSsDescription() {
+        return ssDescription;
+    }
+
+    public String getRtImageName() {
+        return rtImageName;
+    }
+
+    public String getRtImageLabel() {
+
+        return rtImageLabel;
+    }
+
+    public String getRtImageDescription() {
+
+        return rtImageDescription;
+    }
+
+    public String getRtDoseComment() {
+        return rtDoseComment;
+    }
+
     public String getSOPInstanceUID() {
         return dob.getSOPInstanceUID();
     }
@@ -262,6 +336,10 @@ public class FileName implements Comparable<FileName> {
             return listRoiRefFrameOfRef.getFirst();
         }
         return null;
+    }
+
+    public LinkedList<String> getListRefRTPlanSequence() {
+        return listRefRTPlanSequence;
     }
 
     public LinkedList<String> getListRoiRefFrameOfRef() {
