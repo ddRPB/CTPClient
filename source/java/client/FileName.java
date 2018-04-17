@@ -46,6 +46,7 @@ public class FileName implements Comparable<FileName> {
     private boolean isDICOM = false;
     private boolean isImage = false;
     private String studyDescription = "";
+    private String displayedSeriesDescription = "";
     private String seriesDescription = "";
     private String frameOfReference = "";
     private boolean oncentraCheck = false;
@@ -96,12 +97,13 @@ public class FileName implements Comparable<FileName> {
 
             studyDescription = fixNull(dob.getStudyDescription());
             frameOfReference = fixNull(dob.getElementValue(Tags.FrameOfReferenceUID));
+            seriesDescription = fixNull(dob.getSeriesDescription());
 
             //look for a precise description
             switch (modality) {
                 case "RTDOSE":
-                    seriesDescription = fixNull(dob.getElementValue(Tags.DoseComment));
-                    rtDoseComment = seriesDescription;
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.DoseComment));
+                    rtDoseComment = displayedSeriesDescription;
                     seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
 
                     // for RTDOSE -> RTPLAN check
@@ -113,17 +115,26 @@ public class FileName implements Comparable<FileName> {
                         }
                     }
 
+                    //for multiplan check, find out rtstruct if available
+                    DcmElement refStructureSet = dob.getDataset().get(Tags.RefStructureSetSeq);
+                    if (refStructureSet != null) {
+                        for (int i = 0; i < refStructureSet.countItems(); i++) {
+                            Dataset dcm = refStructureSet.getItem(i);
+                            refStructSOPInst = dcm.getString(Tags.RefSOPInstanceUID);
+                        }
+                    }
+
                     break;
                 case "RTPLAN":
-                    seriesDescription = fixNull(dob.getElementValue(Tags.RTPlanLabel));
-                    rtPlanLabel = seriesDescription;
-                    if (seriesDescription.equals("")) {
-                        seriesDescription = fixNull(dob.getElementValue(Tags.RTPlanName));
-                        rtPlanName = seriesDescription;
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTPlanLabel));
+                    rtPlanLabel = displayedSeriesDescription;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTPlanName));
+                        rtPlanName = displayedSeriesDescription;
                     }
-                    if (seriesDescription.equals("")) {
-                        seriesDescription = fixNull(dob.getElementValue(Tags.RTPlanDescription));
-                        rtPlanDescription = seriesDescription;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTPlanDescription));
+                        rtPlanDescription = displayedSeriesDescription;
                     }
                     seriesDate = fixDate(dob.getElementValue(Tags.RTPlanDate));
 
@@ -144,41 +155,41 @@ public class FileName implements Comparable<FileName> {
                     }
                     break;
                 case "RTSTRUCT":
-                    seriesDescription = fixNull(dob.getElementValue(Tags.StructureSetLabel));
-                    ssLabel = seriesDescription;
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.StructureSetLabel));
+                    ssLabel = displayedSeriesDescription;
                     String temp = fixNull(dob.getElementValue(Tags.StructureSetName));
                     ssName = temp;
-                    if (seriesDescription.equals("")) {
-                        seriesDescription += temp;
-                    } else {
-                        seriesDescription += " - " + temp;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription += temp;
+                    } else if(!temp.equals("")){
+                        displayedSeriesDescription += " - " + temp;
                     }
 
-                    if (seriesDescription.equals("")) {
-                        seriesDescription = fixNull(dob.getElementValue(Tags.StructureSetDescription));
-                        ssDescription = seriesDescription;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.StructureSetDescription));
+                        ssDescription = displayedSeriesDescription;
                     }
                     seriesDate = fixDate(dob.getElementValue(Tags.StructureSetDate));
 
 
                     break;
                 case "RTIMAGE":
-                    seriesDescription = fixNull(dob.getElementValue(Tags.RTImageName));
-                    rtImageName = seriesDescription;
-                    if (seriesDescription.equals("")) {
-                        seriesDescription = fixNull(dob.getElementValue(Tags.RTImageLabel));
-                        rtImageLabel = seriesDescription;
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTImageName));
+                    rtImageName = displayedSeriesDescription;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTImageLabel));
+                        rtImageLabel = displayedSeriesDescription;
                     }
-                    if (seriesDescription.equals("")) {
-                        seriesDescription = fixNull(dob.getElementValue(Tags.RTImageDescription));
-                        rtImageDescription = seriesDescription;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTImageDescription));
+                        rtImageDescription = displayedSeriesDescription;
                     }
                     seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
                     break;
             }
 
-            if (seriesDescription.equals("")) {
-                seriesDescription = fixNull(dob.getSeriesDescription());
+            if (displayedSeriesDescription.equals("")) {
+                displayedSeriesDescription = fixNull(dob.getSeriesDescription());
             }
             if (seriesDate.equals("")) {
                 seriesDate = fixDate(dob.getElementValue(Tags.SeriesDate));
@@ -412,6 +423,10 @@ public class FileName implements Comparable<FileName> {
 
     public String getFrameOfReference() {
         return frameOfReference;
+    }
+
+    public String getDisplayedSeriesDescription() {
+        return displayedSeriesDescription;
     }
 
     public String getSeriesDescription() {

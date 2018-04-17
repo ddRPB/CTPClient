@@ -20,7 +20,7 @@ public class SeriesName extends JButton {
     public SeriesName(FileName fileName) {
         super();
         fn = fileName;
-        seriesDescription = fn.getSeriesDescription();
+        seriesDescription = fn.getDisplayedSeriesDescription();
         modality = fn.getModality();
         updateName();
         setFont(new Font("Monospaced", Font.BOLD, 14));
@@ -44,6 +44,10 @@ public class SeriesName extends JButton {
 
     public String getSeriesInstanceUID() {
         return fn.getSeriesInstanceUID();
+    }
+
+    public String getDisplayedSeriesDescription() {
+        return fn.getDisplayedSeriesDescription();
     }
 
     public String getSeriesDescription() {

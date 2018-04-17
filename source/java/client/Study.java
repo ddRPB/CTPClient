@@ -224,7 +224,6 @@ public class Study implements ActionListener, Comparable<Study> {
         if (!studyName.getClassification().equals(requiredStudyType)
                 && !requiredStudyType.equals("")) {
             wrongStudyType = true;
-            System.out.println("wrongStudyType 1");
         }
 
         if (requiredStudyType.equals("Contouring")) {
@@ -240,7 +239,6 @@ public class Study implements ActionListener, Comparable<Study> {
             }
             if (!ctSOPClassUID.equals(rtstructRefSOPClassUID)) {
                 wrongReferences = true;
-                System.out.println("wrongRef 2");
             }
         } else if (requiredStudyType.equals("TreatmentPlan")) {
             String rtplanRefStructSOPInst = "";
@@ -270,17 +268,11 @@ public class Study implements ActionListener, Comparable<Study> {
                     (!rtplanRefStructSOPInst.equals(rtstructSOPInstanceUID) ||
                     !rtplanRefDoseSOPInst.equals(rtdoseSOPInstanceUID))) {
                 wrongReferences = true;
-                System.out.println("wrongRef 3");
-                System.out.println("rtplanRefStructSOPInst: " + rtplanRefStructSOPInst);
-                System.out.println("rtstructSOPInstanceUID: " + rtstructSOPInstanceUID);
-                System.out.println("rtplanRefDoseSOPInst: " + rtplanRefDoseSOPInst);
-                System.out.println("rtdoseSOPInstanceUID: " + rtdoseSOPInstanceUID);
             }
 
             if (!refSOPinstanceUID.equals("") &&
                     !refSOPinstanceUID.equals(rtplanSOPInstanceUID)) {
                 wrongReferences = true;
-                System.out.println("wrongRef 4");
             }
         }
     }
@@ -333,7 +325,7 @@ public class Study implements ActionListener, Comparable<Study> {
                 if (occurences == 1){
                     for (String k : seriesTable.keySet()) {
                         if (seriesTable.get(k).getFrameOfRef().equals(t)) {
-                            refs = refs.trim() + " - (" + seriesTable.get(k).getSeriesDescription() + ")\n";
+                            refs = refs.trim() + " - (" + seriesTable.get(k).getDisplayedSeriesDescription() + ")\n";
                         }
                     }
                 }

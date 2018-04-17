@@ -12,8 +12,11 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import org.dcm4che.data.Dataset;
+import org.dcm4che.data.DcmElement;
 import org.dcm4che.dict.TagDictionary;
 import org.dcm4che.dict.Tags;
+import org.dcm4che.dict.VRs;
 import org.rsna.ctp.objects.*;
 import org.rsna.ctp.pipeline.Status;
 import org.rsna.ctp.stdstages.anonymizer.AnonymizerStatus;
@@ -29,8 +32,6 @@ import org.rsna.server.*;
 import org.rsna.util.*;
 
 import org.dcm4che.dict.DictionaryFactory;
-
-import javax.swing.*;
 
 public class SenderThread extends Thread {
 
@@ -59,8 +60,6 @@ public class SenderThread extends Thread {
     private boolean zip;
     private DicomStorageSCU scu = null;
     private IntegerTable integerTable = null;
-
-    private boolean cleanupFile = false;
 
     private static final int retryCount = 5;
     private static final int oneSecond = 1000;
@@ -105,19 +104,30 @@ public class SenderThread extends Thread {
 
     public void run() {
         StatusPane statusPane = StatusPane.getInstance();
-
         LinkedList<FileName> fileNames = new LinkedList<FileName>();
         Study[] studies = studyList.getStudies();
+        HashMap<Study, Integer> studyWithSelectedSeriesCount= new HashMap<>();
+        String mainRTStructSopInstanceUID = "";
         for (Study study : studies) {
             Series[] series = study.getSeries();
+            int count = 0;
             for (Series s : series) {
+
                 if (s.isSelected()) {
+                    count++;
                     FileName[] names = s.getFileNames();
                     for (FileName name : names) {
                         if (name.isSelected()) {
                             fileNames.add(name);
                         }
                     }
+
+                    // get the rtstruct of the main study
+                    if (s.getModality().equals("RTSTRUCT")) {
+                        mainRTStructSopInstanceUID = s.getSOPInstanceUID();
+                    }
+
+                    studyWithSelectedSeriesCount.put(study, count);
                 }
             }
         }
@@ -139,9 +149,9 @@ public class SenderThread extends Thread {
             StatusText fileStatus = fn.getStatusText();
 
             //statusPane.setText("Sending " + (++fileNumber) + "/" + nFiles + " (" + file.getName() + ")");
-            parent.pBar.setVisible(true);
-            parent.pBar.setString("Sending " + (++fileNumber) + "/" + nFiles + " (" + file.getName() + ")");
-            parent.pBar.setValue(Math.round(((float)100 / nFiles) * fileNumber));
+            parent.progressBar.setVisible(true);
+            parent.progressBar.setString("Sending " + (++fileNumber) + "/" + nFiles + " (" + file.getName() + ")");
+            parent.progressBar.setValue(Math.round(((float)100 / nFiles) * fileNumber));
             parent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
             try {
@@ -162,13 +172,16 @@ public class SenderThread extends Thread {
 
                             dob = new DicomObject(dob.getFile(), true);
                             File dobFile = dob.getFile();
-                            File tFile = null;
+                            File tFile;
 
                             //change study description if required
                             if (parent.newStudyDescription != null) {
                                 dob.setElementValue(Tags.StudyDescription, parent.newStudyDescription);
-                                cleanupFile = true;
+                            }
 
+                            // change the StudyUID if we merge studies to one main study
+                            if (studyWithSelectedSeriesCount.keySet().size() > 1) {
+                                dob.setElementValue(Tags.StudyInstanceUID, parent.selectedStudyInstanceUID);
                             }
 
                             // change series description if required
@@ -178,51 +191,62 @@ public class SenderThread extends Thread {
                             String siuid = dob.getSeriesInstanceUID();
                             if (parent.siUIDtoNewDescription.containsKey(siuid)) {
                                 dob.setElementValue(Tags.SeriesDescription, parent.siUIDtoNewDescription.get(siuid));
-                                cleanupFile = true;
                             }
 
                             String modality = dob.getModality();
                             switch (modality) {
                                 case "RTDOSE":
-                                    dob.setElementValue(Tags.DoseComment, parent.tagToNewRTDesc.get("DoseComment"));
+                                    dob.setElementValue(Tags.DoseComment, parent.tagToNewRTDesc.get("DoseComment" + ";" + siuid));
+
+                                    // check in Multiplan case
+                                    if (!fn.getRefStructSOPInst().equals("")) {
+                                        writeRefStructSetSeq(mainRTStructSopInstanceUID, dob);
+                                    }
+
                                     break;
                                 case "RTPLAN":
-                                    dob.setElementValue(Tags.RTPlanLabel, parent.tagToNewRTDesc.get("RTPlanLabel"));
-                                    dob.setElementValue(Tags.RTPlanName, parent.tagToNewRTDesc.get("RTPlanName"));
-                                    dob.setElementValue(Tags.RTPlanDescription, parent.tagToNewRTDesc.get("RTPlanDescription"));
+                                    dob.setElementValue(Tags.RTPlanLabel, parent.tagToNewRTDesc.get("RTPlanLabel" + ";" + siuid));
+                                    dob.setElementValue(Tags.RTPlanName, parent.tagToNewRTDesc.get("RTPlanName" + ";" + siuid));
+                                    dob.setElementValue(Tags.RTPlanDescription, parent.tagToNewRTDesc.get("RTPlanDescription" + ";" + siuid));
+
+                                    // change the reference in case of multiplan
+                                    if (!fn.getRefStructSOPInst().equals(mainRTStructSopInstanceUID)) {
+                                        writeRefStructSetSeq(mainRTStructSopInstanceUID, dob);
+                                    }
+
                                     break;
                                 case "RTSTRUCT":
-                                    dob.setElementValue(Tags.StructureSetLabel, parent.tagToNewRTDesc.get("StructureSetLabel"));
-                                    dob.setElementValue(Tags.StructureSetName, parent.tagToNewRTDesc.get("StructureSetName"));
-                                    dob.setElementValue(Tags.StructureSetDescription, parent.tagToNewRTDesc.get("StructureSetDescription"));
+                                    dob.setElementValue(Tags.StructureSetLabel, parent.tagToNewRTDesc.get("StructureSetLabel" + ";" + siuid));
+                                    dob.setElementValue(Tags.StructureSetName, parent.tagToNewRTDesc.get("StructureSetName" + ";" + siuid));
+                                    dob.setElementValue(Tags.StructureSetDescription, parent.tagToNewRTDesc.get("StructureSetDescription" + ";" + siuid));
                                     break;
                                 case "RTIMAGE":
-                                    dob.setElementValue(Tags.RTImageName, parent.tagToNewRTDesc.get("RTImageName"));
-                                    dob.setElementValue(Tags.RTImageLabel, parent.tagToNewRTDesc.get("RTImageLabel"));
-                                    dob.setElementValue(Tags.RTImageDescription, parent.tagToNewRTDesc.get("RTImageDescription"));
+                                    dob.setElementValue(Tags.RTImageName, parent.tagToNewRTDesc.get("RTImageName" + ";" + siuid));
+                                    dob.setElementValue(Tags.RTImageLabel, parent.tagToNewRTDesc.get("RTImageLabel" + ";" + siuid));
+                                    dob.setElementValue(Tags.RTImageDescription, parent.tagToNewRTDesc.get("RTImageDescription" + ";" + siuid));
                                     break;
                                 default:
 
                                     break;
                             }
 
-                            if (cleanupFile) {
-                                tFile = File.createTempFile("TMP-", ".dcm", dobFile.getParentFile());
-                                dob.saveAs(tFile, false);
-                                dob.close();
-                                // parse the dicom object from the new modified temporary file
-                                // delete the file later on
-                                dob = new DicomObject(tFile);
-                            }
+
+                            tFile = File.createTempFile("TMP-", ".dcm", dobFile.getParentFile());
+                            dob.saveAs(tFile, false);
+                            dob.close();
+                            // parse the dicom object from the new modified temporary file
+                            // delete the file later on
+                            dob = new DicomObject(tFile);
 
                             //Anonymize the pixels and the rest of the dataset.
                             //This returns a new DicomObject in the temp directory.
                             //The original object is left unmodified.
                             dob = anonymize(dob, fileStatus);
 
-                            if (cleanupFile) {
-                                tFile.delete();
-                            }
+                            // get the hashed studyInstanceUID
+                            parent.hashedStudyInstanceUID = dob.getStudyInstanceUID();
+
+                            tFile.delete();
 
                             //If all went well, update the idTable and export
                             if (dob != null) {
@@ -285,7 +309,7 @@ public class SenderThread extends Thread {
             }
         }
 
-        parent.pBar.setString("Processing complete");
+        parent.progressBar.setString("Processing complete");
         parent.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 
         if (scu != null) scu.close();
@@ -306,6 +330,17 @@ public class SenderThread extends Thread {
         status += text;
         return status;
     }
+
+    private void writeRefStructSetSeq(String mainUID, DicomObject dob) {
+        DcmElement dcmE = dob.getDataset().get(Tags.RefStructureSetSeq);
+        if (dcmE != null) {
+            for (int i = 0; i < dcmE.countItems(); i++) {
+                Dataset ds = dcmE.getItem(i);
+                ds.putXX(Tags.RefSOPInstanceUID, VRs.UI, mainUID);
+            }
+        }
+    }
+
 
     private DicomObject anonymize(DicomObject dob, StatusText fileStatus) {
         try {

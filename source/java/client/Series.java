@@ -103,6 +103,10 @@ public class Series implements ActionListener, Comparable<Series> {
         return seriesName.getSeriesInstanceUID();
     }
 
+    public String getDisplayedSeriesDescription() {
+        return seriesName.getDisplayedSeriesDescription();
+    }
+
     public String getSeriesDescription() {
         return seriesName.getSeriesDescription();
     }
@@ -257,6 +261,10 @@ public class Series implements ActionListener, Comparable<Series> {
         return fn.getRtImageDescription();
     }
 
+    public String getModality() {
+        return seriesName.getModality();
+    }
+
     public void display(DirectoryPanel dp) {
         dp.add(cb);
         seriesName.setNumberOfFiles(list.size());
@@ -273,7 +281,7 @@ public class Series implements ActionListener, Comparable<Series> {
             } else {
                 StringBuilder sb = new StringBuilder();
                 for (String ref : list.getFirst().getListRoiRefFrameOfRef()) {
-                    sb.append(ref + "\n");
+                    sb.append(ref).append("\n");
                 }
 
                 Runnable enable = new Runnable() {
@@ -282,7 +290,7 @@ public class Series implements ActionListener, Comparable<Series> {
                                 "The referenced frames of reference do not match\n" +
                                         "The following references were found: \n" +
                                         sb.toString(),
-                                "Series: " + seriesName.getSeriesDescription(), JOptionPane.WARNING_MESSAGE);
+                                "Series: " + seriesName.getDisplayedSeriesDescription(), JOptionPane.WARNING_MESSAGE);
                     }
                 };
                 SwingUtilities.invokeLater(enable);

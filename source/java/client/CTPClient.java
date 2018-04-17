@@ -10,14 +10,15 @@ package client;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.net.Authenticator;
-import java.net.HttpURLConnection;
+import java.net.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.*;
 
 import org.apache.log4j.*;
 import org.rsna.ctp.stdstages.anonymizer.dicom.DAScript;
@@ -38,7 +39,17 @@ import org.w3c.dom.Document;
 public class CTPClient extends JFrame implements ActionListener, ComponentListener {
 
     private static final String title = "CTP Client - DKTK";
+
     private static final Color bgColor = new Color(0xc6d8f9);
+    private static final Color disabledCellColor = Color.PINK;
+    private static final Color enabledCellColor = Color.GREEN;
+    private static final Color blueColor = Color.BLUE;
+    /*
+    private static final Color bgColor = new Color(0xf1faee);
+    private static final Color disabledCellColor = new Color(0xe63946);
+    private static final Color enabledCellColor = new Color(0xa8dadc);
+    private static final Color blueColor = new Color(0x1d3557);*/
+
     final HashMap<String, String> siUIDtoNewDescription;
     final HashMap<String, String> tagToNewRTDesc;
     private final JScrollPane sp;
@@ -54,7 +65,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private final FieldButton startButton;
     private final FieldButton showLogButton;
     private final FieldButton instructionsButton;
-    private final AttachedFrame instructionsFrame;
     private final boolean dfEnabled;
     private final boolean dpaEnabled;
     private final boolean showBrowseButton;
@@ -86,20 +96,20 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private String ipAddressString = "";
     private File exportDirectory = null;
     private StudyList studyList = null;
-    private JButton studyDescriptionButton;
-    private JButton seriesDescriptionButton;
     private JTextField newDescField;
     private JTextField descField;
     private JButton userOKButton;
     private JButton userCancelbutton;
-    private JButton rtOKButton;
-    private JButton rtCancelButton;
     private JFrame userDialogFrame;
-    private JFrame rtDialogFrame;
     private DefaultTableModel seriesTableModel;
     private DefaultTableModel rtTableModel;
-    JProgressBar pBar;
+    private JTabbedPane seriesTabbedPane;
+    JProgressBar progressBar;
     LinkedList<String> rtList = new LinkedList<>();
+    String selectedStudyInstanceUID;
+    private JTextField siuidField;
+    private JLabel target;
+    String hashedStudyInstanceUID = "0815";
 
     private CTPClient(String[] args) {
         super();
@@ -127,13 +137,21 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
             }
         }
 
+        target = new JLabel("Target: ");
+        target.setFont(new Font("SansSerif", Font.BOLD, 12));
+
         //Get the DICOM export URL
         dicomURL = config.getProperty("dicomURL", "");
+        if (dicomURL != null) {
+            target.setText(target.getText() + " - " + dicomURL);
+        }
 
         //Get the DICOM STOWRS export parameters
         stowURL = config.getProperty("stowURL", "");
         stowUsername = config.getProperty("stowUsername", "");
         stowPassword = config.getProperty("stowPassword", "");
+
+        seriesTabbedPane = new JTabbedPane();
 
         //Set up the exportDirectory
         String expDir = config.getProperty("exportDirectory");
@@ -141,7 +159,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         renameFiles = config.getProperty("renameFiles", "no").equals("yes");
 
         //Get the button enables
-        boolean showURL = !config.getProperty("showURL", "yes").equals("no");
+        boolean showURL = !config.getProperty("showURL", "no").equals("no");
         showBrowseButton = !config.getProperty("showBrowseButton", "yes").equals("no") || (scpPort <= 0);
         boolean showDialogButton = !config.getProperty("showDialogButton", "yes").equals("no");
 
@@ -151,10 +169,17 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         //Get the study type to crosscheck later on
         requiredStudyType = Objects.toString(config.getProperty("studyType"), "");
+        if (!requiredStudyType.equals("")) {
+            target.setText(target.getText() + " - " + requiredStudyType);
+        }
+
         //Get the birth date to crosscheck later on
         requiredPatientsBirthDate = Objects.toString(config.getProperty("birthDate"), "");
 
         pseudonym = Objects.toString(config.getProperty("pseudonym"), "");
+        if (!pseudonym.equals("")) {
+            target.setText(target.getText() + " - " + pseudonym);
+        }
 
         //Get the gender of the patient to crosscheck
         requiredGender = Objects.toString(config.getProperty("gender"), "");
@@ -187,6 +212,10 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         //Make the UI components
         String httpURL = config.getProperty("httpURL", "").trim();
+        if (!httpURL.equals("")) {
+            target.setText(target.getText() + " - " + httpURL);
+        }
+
         httpURLField = new InputText(httpURL);
         browseButton = new FieldButton("Open Local Folder");
         browseButton.setEnabled(true);
@@ -217,6 +246,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         header.add(new TitleLabel(config.getProperty("panelTitle")));
         header.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
         panel.add(header, BorderLayout.NORTH);
+
+        JPanel targetPanel = new JPanel();
+        targetPanel.setBackground(bgColor);
+        targetPanel.add(target);
+        targetPanel.setBorder(BorderFactory.createEmptyBorder(10,5,10,5));
+        //panel.add(targetPanel, BorderLayout.SOUTH);
 
         //Make a panel for the input fields and the progress display
         JPanel main = new JPanel();
@@ -265,6 +300,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         }
         vBox.add(buttonBox);
 
+        vBox.add(targetPanel);
+
         //Put the vBox in the north panel of the main panel
         main.add(vBox, BorderLayout.NORTH);
 
@@ -286,19 +323,15 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         //Now put the main panel in the center of the frame
         panel.add(main, BorderLayout.CENTER);
 
-        //Make the instructionsFrame
-        int instructionsWidth = 425;
-        instructionsFrame = new AttachedFrame("Instructions", instructionsWidth, bgColor);
-
         //Make a footer bar to display status.
         StatusPane status = StatusPane.getInstance(" ", bgColor);
 
         //ProgressBar
-        pBar = new JProgressBar(0, 100);
-        pBar.setVisible(false);
-        pBar.setValue(0);
-        pBar.setStringPainted(true);
-        status.addRightComponent(pBar);
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setVisible(false);
+        progressBar.setValue(0);
+        progressBar.setStringPainted(true);
+        status.addRightComponent(progressBar);
 
         if (config.getProperty("showMemory", "no").equals("yes")) {
             showMemoryButton = new FieldButton("Show Memory");
@@ -337,12 +370,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
             }
         }
 
-        //Now that everything is set up, set the text of the
-        //instructions to make it correspond to the configuration
-        //and display the frame
-        instructionsFrame.setText(getInstructions());
-        instructionsFrame.attachTo(this);
-        instructionsFrame.setVisible(false);
         this.requestFocus();
         addComponentListener(this);
     }
@@ -356,6 +383,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         new CTPClient(args);
     }
 
+    boolean browseTheFirstTime = true;
     //.Implement the ActionListener interface
     @SuppressWarnings("SpellCheckingInspection")
     public void actionPerformed(ActionEvent event) {
@@ -372,6 +400,18 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 studyList.setRequiredStudyType(requiredStudyType);
                 studyList.display(dp);
                 studyList.selectFirstStudy();
+                if (browseTheFirstTime) {
+                    target.setText(target.getText() + " - " + studyList.getStudyDescriptionOfFirstStudy());
+                    browseTheFirstTime = false;
+                }
+                else {
+                    int start = target.getText().lastIndexOf("-");
+                    int end = target.getText().length();
+                    StringBuffer temp = new StringBuffer(target.getText());
+                    temp.replace(start, end, "");
+                    target.setText(temp.toString() + "- " + studyList.getStudyDescriptionOfFirstStudy());
+                }
+
                 startButton.setEnabled(true);
                 if (studyList.isStudyTypeWrong()) {
                     startButton.setEnabled(false);
@@ -427,7 +467,18 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
                 Study[] studies = studyList.getStudies();
                 int numberOfSelectedStudies = 0;
+                int numberOfSelectedRTSTRUCTS = 0;
                 for (Study study : studies) {
+                    // check the number of selected RTSTRUCTs here
+                    Series[] series = study.getSeries();
+                    for (Series s : series) {
+                        if (s.isSelected()) {
+                            if (s.getModality().equals("RTSTRUCT")) {
+                                numberOfSelectedRTSTRUCTS++;
+                            }
+                        }
+                    }
+
                     if (study.isSelected()) {
                         numberOfSelectedStudies++;
                     }
@@ -444,6 +495,18 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                     };
                     SwingUtilities.invokeLater(enable);
 
+                } else if (numberOfSelectedRTSTRUCTS > 1) {
+                    final JFrame parent = this;
+                    Runnable enable = new Runnable() {
+
+                        public void run() {
+                            JOptionPane.showMessageDialog(parent,
+                                    "You can select at most one RTSTRUCT. Please choose the RTSTRUCT " +
+                                            "of the main study and deselect all the other ones",
+                                    "Information", JOptionPane.WARNING_MESSAGE);
+                        }
+                    };
+                    SwingUtilities.invokeLater(enable);
                 }
                 else {
 
@@ -455,7 +518,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
                     //show window to change study/series descriptions
                     this.setEnabled(false);
-                    this.setVisible(false);
                     showUserDialog();
                 }
 
@@ -470,12 +532,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         } else if (source.equals(showLogButton)) {
             showLog();
         } else if (source.equals(instructionsButton)) {
-            instructionsFrame.attachTo(this);
-            instructionsFrame.setVisible(true);
-            this.requestFocus();
-        } else if (source.equals(studyDescriptionButton)) {
-            newDescField.setText(descField.getText());
-
+            openInstructionWebPage();
         } else if (source.equals(userOKButton)) {
             // the new Study Description
             newStudyDescription = newDescField.getText();
@@ -486,16 +543,24 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                         seriesTableModel.getValueAt(i, 2).toString());
             }
 
+            for (int i = 0; i < rtTableModel.getRowCount(); i++) {
+                //combine tagname with siUID (combined key), parse it in sender thread
+                tagToNewRTDesc.put(rtTableModel.getValueAt(i, 0).toString()
+                                + ";"
+                                + rtTableModel.getValueAt(i, 3),
+                        rtTableModel.getValueAt(i, 2).toString());
+            }
+
             userDialogFrame.setEnabled(false);
             userDialogFrame.setVisible(false);
 
-            showRTDialog();
+            this.setEnabled(true);
+            this.setVisible(true);
+            SenderThread sender = new SenderThread(this);
+            sender.start();
 
-        } else if (source.equals(seriesDescriptionButton)) {
-            for (int i = 0; i < seriesTableModel.getRowCount(); i++) {
-                seriesTableModel.setValueAt(seriesTableModel.getValueAt(i, 1), i, 2);
-            }
         } else if (source.equals(userCancelbutton)) {
+            seriesTabbedPane.removeAll();
             userDialogFrame.dispose();
             this.setEnabled(true);
             this.setVisible(true);
@@ -503,25 +568,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
             dialogButton.setEnabled(true);
             browseButton.setEnabled(true);
             scpButton.setEnabled(true);
-            sending = false;
-        } else if (source.equals(rtOKButton)) {
-            rtDialogFrame.setEnabled(false);
-            rtDialogFrame.setVisible(false);
-
-            for (int i = 0; i < rtTableModel.getRowCount(); i++) {
-                tagToNewRTDesc.put(rtTableModel.getValueAt(i, 0).toString(),
-                        rtTableModel.getValueAt(i, 2).toString());
-            }
-
-            this.setEnabled(true);
-            this.setVisible(true);
-            SenderThread sender = new SenderThread(this);
-            sender.start();
-
-        } else if (source.equals(rtCancelButton)) {
-            rtDialogFrame.dispose();
-            userDialogFrame.setEnabled(true);
-            userDialogFrame.setVisible(true);
             sending = false;
         }
     }
@@ -562,55 +608,35 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     public void componentHidden(ComponentEvent e) {
     }
 
-    public void componentMoved(ComponentEvent e) {
-        setInstructionsPosition();
-    }
-
-    public void componentResized(ComponentEvent e) {
-        setInstructionsPosition();
-    }
-
     public void componentShown(ComponentEvent e) {
     }
 
-    private void setInstructionsPosition() {
-        if (instructionsFrame.isVisible()) {
-            instructionsFrame.attachTo(this);
-        }
+    public void componentResized(ComponentEvent e) {
+
     }
 
-    private String getInstructions() {
-        StringBuffer sb = new StringBuffer();
-        sb.append("<center><h1>Instructions</h1></center><hr/>\n");
-        if ((scp != null)) {
-            sb.append("<h2>To process and export images received from a PACS or workstation:</h2>\n");
-            sb.append("<ol>");
-            sb.append("<li>Send images to <b>").append(ipAddressString).append("</b>\n");
-            sb.append("<li>Click the <b>Open DICOM Storage</b> button.\n");
-            sb.append("<li>Check the boxes of the images to be processed.\n");
-            sb.append("<li>Click the <b>Start</b> button.\n");
-            if (dialog != null) {
-                sb.append("<li>Fill in the fields in the dialog.\n");
-                sb.append("<li>Click <b>OK</b> on the dialog.\n");
+    public void componentMoved(ComponentEvent e) {
+
+    }
+
+    public static void openInstructionWebPage() {
+        String url = "https://radplanbio.uniklinikum-dresden.de/help/client/clientmanual.html";
+
+        if(Desktop.isDesktopSupported()){
+            Desktop desktop = Desktop.getDesktop();
+            try {
+                desktop.browse(new URI(url));
+            } catch (IOException | URISyntaxException e) {
+                e.printStackTrace();
             }
-            sb.append("</ol>");
-        }
-        if (showBrowseButton) {
-            if (sb.length() > 0) sb.append("\n");
-            sb.append("<h2>To process and export images stored on this computer:</h2>\n");
-            sb.append("<ol>");
-            sb.append("<li>Click the <b>Open Local Folder</b> button\n");
-            sb.append("<li>Navigate to a folder containing dicom files.\n");
-            sb.append("<li>Click <b>OK</b> on the file dialog.\n");
-            sb.append("<li>Check the boxes of the series to be processed.\n");
-            sb.append("<li>Click the <b>Start</b> button.\n");
-            if (dialog != null) {
-                sb.append("<li>Fill in the fields in the dialog.\n");
-                sb.append("<li>Click <b>OK</b> on the dialog.\n");
+        }else{
+            Runtime runtime = Runtime.getRuntime();
+            try {
+                runtime.exec("xdg-open " + url);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            sb.append("</ol>");
         }
-        return sb.toString();
     }
 
     private boolean displayDialog() {
@@ -644,8 +670,10 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 dialogButton.setEnabled(true);
                 startButton.setEnabled(true);
                 JOptionPane.showMessageDialog(parent,
-                        "The selection has been processed..",
-                        "Processing Complete", JOptionPane.INFORMATION_MESSAGE);
+                        "The selection has been processed... \n" +
+                                "new siUID: " + hashedStudyInstanceUID,
+                        "Processing Complete",
+                        JOptionPane.INFORMATION_MESSAGE);
                 WindowEvent wev = new WindowEvent(parent, WindowEvent.WINDOW_CLOSING);
                 Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(wev);
             }
@@ -678,6 +706,10 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                         "Please choose another patient.";
                 break;
             }
+            case "rtstruct": {
+                infoString = "You have selected more than one RTSTRUCT. " +
+                        "Please choose the RTSTRUCT of the main study.\n";
+            }
             default: {
                 infoString = "Unknown Information.";
                 break;
@@ -695,70 +727,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         SwingUtilities.invokeLater(enable);
     }
 
-    public void showRTDialog() {
-
-        rtDialogFrame = new JFrame("RT - Dialog");
-        rtDialogFrame.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        String[] columnNames = {"Tag",
-                "original Description",
-                "new Description"};
-
-        Object[][] tempData = new Object[rtList.size() / 3][3];
-        for (int i = 0; i < rtList.size(); i++) {
-            tempData[i / 3][i % 3] = rtList.get(i);
-        }
-
-        rtTableModel = new DefaultTableModel(tempData, columnNames){
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                // make read only fields except column 3
-                return column == 2;
-            }
-        };
-
-        JTable rtTable = new JTable(rtTableModel);
-        rtTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
-        TableCellRenderer renderer = new EvenOddRenderer();
-        rtTable.setDefaultRenderer(Object.class, renderer);
-        rtTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        rtTable.getColumnModel().getColumn(0).setMinWidth(150);
-        rtTable.getColumnModel().getColumn(1).setMinWidth(150);
-        rtTable.getColumnModel().getColumn(2).setMinWidth(150);
-
-        JScrollPane rtTableScrollPane= new JScrollPane(rtTable);
-        rtTable.setFillsViewportHeight(true);
-
-        /*-------------------------------------------------------------*/
-
-        rtOKButton = new JButton("OK");
-        rtOKButton.addActionListener(this);
-        rtOKButton.setMinimumSize(new Dimension(this.getWidth(), 24));
-
-        /*-------------------------------------------------------------*/
-
-        rtCancelButton = new JButton("Cancel");
-        rtCancelButton.addActionListener(this);
-        rtCancelButton.setMinimumSize(new Dimension(this.getWidth(), 24));
-
-        JPanel naviButtonPanel = new JPanel();
-        naviButtonPanel.setLayout(new FlowLayout());
-        naviButtonPanel.add(rtOKButton);
-        naviButtonPanel.add(rtCancelButton);
-        /*-------------------------------------------------------------*/
-        rtDialogFrame.add(rtTableScrollPane, gbc);
-        rtDialogFrame.add(naviButtonPanel);
-
-        rtDialogFrame.setMinimumSize(new Dimension(this.getWidth(), this.getHeight()));
-        rtDialogFrame.setLocation(this.getLocation());
-        rtDialogFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        rtDialogFrame.setVisible(true);
-    }
-
     public void showUserDialog () {
 
         Study studies[] = studyList.getStudies();
@@ -768,6 +736,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 selectedStudy = s;
             }
         }
+
+        selectedStudyInstanceUID = selectedStudy.getSiuid();
 
         userDialogFrame = new JFrame("Selected DICOM Study");
         userDialogFrame.setLayout(new GridBagLayout());
@@ -789,13 +759,13 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JLabel dicomPatientLabel = new JLabel("ID:         ");
         JTextField idField = new JTextField(selectedStudy.getPatientID());
         idField.setEnabled(false);
-        idField.setBackground(Color.PINK);
+        idField.setBackground(disabledCellColor);
         idField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel01 = new JLabel(" -> ");
         JTextField newIdField = new JTextField();
         newIdField.setText(pseudonym);
         newIdField.setEnabled(false);
-        newIdField.setBackground(Color.GREEN);
+        newIdField.setBackground(enabledCellColor);
         newIdField.setPreferredSize(new Dimension(250, 24));
 
         idPanel.add(dicomPatientLabel);
@@ -811,12 +781,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         JTextField nameField = new JTextField(selectedStudy.getPatientname());
         nameField.setEnabled(false);
-        nameField.setBackground(Color.PINK);
+        nameField.setBackground(disabledCellColor);
         nameField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel02 = new JLabel(" -> ");
         JTextField newNameField = new JTextField();
         newNameField.setText(pseudonym);
-        newNameField.setBackground(Color.GREEN);
+        newNameField.setBackground(enabledCellColor);
         newNameField.setPreferredSize(new Dimension(250, 24));
 
         namePanel.add(dicomNameLabel);
@@ -831,11 +801,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JLabel dicomGenderLabel = new JLabel("Gender:  ");
         JTextField genderField = new JTextField(selectedStudy.getGender());
         genderField.setEnabled(false);
-        genderField.setBackground(Color.PINK);
+        genderField.setBackground(disabledCellColor);
         genderField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel03 = new JLabel(" -> ");
-        JTextField newGenderField = new JTextField();
-        newGenderField.setBackground(Color.GREEN);
+        JTextField newGenderField = new JTextField(selectedStudy.getGender());
+        newGenderField.setBackground(enabledCellColor);
         newGenderField.setPreferredSize(new Dimension(250, 24));
 
         genderPanel.add(dicomGenderLabel);
@@ -850,12 +820,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JLabel dicomDOBLabel = new JLabel("DOB:      ");
         JTextField dobField = new JTextField(selectedStudy.getPatientBirthDate());
         dobField.setEnabled(false);
-        dobField.setBackground(Color.PINK);
+        dobField.setBackground(disabledCellColor);
         dobField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel04 = new JLabel(" -> ");
         JTextField newDOBField = new JTextField();
         newDOBField.setText("19000101");
-        newDOBField.setBackground(Color.GREEN);
+        newDOBField.setBackground(enabledCellColor);
         newDOBField.setPreferredSize(new Dimension(250, 24));
 
         dobPanel.add(dicomDOBLabel);
@@ -881,7 +851,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JLabel dicomTypeLabel = new JLabel("Study type: ");
         JTextField typeField = new JTextField(selectedStudy.getStudyType());
         typeField.setEnabled(false);
-        typeField.setBackground(Color.PINK);
+        typeField.setBackground(disabledCellColor);
         typeField.setPreferredSize(new Dimension(250, 24));
 
         typePanel.add(dicomTypeLabel);
@@ -894,17 +864,16 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JLabel dicomDescLabel = new JLabel("Description: ");
         descField = new JTextField(selectedStudy.getStudyDescription());
         descField.setEnabled(false);
-        descField.setBackground(Color.PINK);
+        descField.setBackground(disabledCellColor);
         descField.setPreferredSize(new Dimension(250, 24));
-        studyDescriptionButton = new JButton(" -> ");
-        studyDescriptionButton.addActionListener(this);
-        newDescField = new JTextField();
-        newDescField.setBackground(Color.GREEN);
+        JLabel arrowLabel05 = new JLabel(" -> ");
+        newDescField = new JTextField(selectedStudy.getStudyDescription());
+        newDescField.setBackground(enabledCellColor);
         newDescField.setPreferredSize(new Dimension(250, 24));
 
         descPanel.add(dicomDescLabel);
         descPanel.add(descField);
-        descPanel.add(studyDescriptionButton);
+        descPanel.add(arrowLabel05);
         descPanel.add(newDescField);
         dicomStudyPanel.add(descPanel);
 
@@ -920,9 +889,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         JPanel seriesButtonPanel = new JPanel();
         seriesButtonPanel.setLayout(new FlowLayout());
-        seriesDescriptionButton = new JButton(" -> ");
-        seriesDescriptionButton.addActionListener(this);
-        seriesButtonPanel.add(seriesDescriptionButton);
+        JLabel arrowLabel06 = new JLabel("  ");
+        seriesButtonPanel.add(arrowLabel06);
 
         String[] columnNames = {"Modality",
                 "original Description",
@@ -941,7 +909,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                     modality = s.getSeriesName().getModality();
                     dataList.add(modality);
                     dataList.add(s.getSeriesDescription());
-                    dataList.add("");
+                    dataList.add(s.getSeriesDescription());
                     siUID = s.getSeriesName().getSeriesInstanceUID();
                     dataList.add(siUID);
 
@@ -950,46 +918,56 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                         case "RTDOSE":
                             rtList.add("DoseComment");
                             rtList.add(s.getRTDoseComment());
-                            rtList.add("");
+                            rtList.add(s.getRTDoseComment());
+                            rtList.add(s.getSeriesInstanceUID());
                             break;
                         case "RTPLAN":
                             rtList.add("RTPlanLabel");
                             rtList.add(s.getRTPlanLabel());
-                            rtList.add("");
+                            rtList.add(s.getRTPlanLabel());
+                            rtList.add(s.getSeriesInstanceUID());
 
                             rtList.add("RTPlanName");
                             rtList.add(s.getRTPlanName());
-                            rtList.add("");
+                            rtList.add(s.getRTPlanName());
+                            rtList.add(s.getSeriesInstanceUID());
 
                             rtList.add("RTPlanDescription");
                             rtList.add(s.getRTPlanDescription());
-                            rtList.add("");
+                            rtList.add(s.getRTPlanDescription());
+                            rtList.add(s.getSeriesInstanceUID());
                             break;
                         case "RTSTRUCT":
                             rtList.add("StructureSetLabel");
                             rtList.add(s.getSSLabel());
-                            rtList.add("");
+                            rtList.add(s.getSSLabel());
+                            rtList.add(s.getSeriesInstanceUID());
 
                             rtList.add("StructureSetName");
                             rtList.add(s.getSSName());
-                            rtList.add("");
+                            rtList.add(s.getSSName());
+                            rtList.add(s.getSeriesInstanceUID());
 
                             rtList.add("StructureSetDescription");
                             rtList.add(s.getSSDescription());
-                            rtList.add("");
+                            rtList.add(s.getSSDescription());
+                            rtList.add(s.getSeriesInstanceUID());
                             break;
                         case "RTIMAGE":
                             rtList.add("RTImageName");
                             rtList.add(s.getRTImageName());
-                            rtList.add("");
+                            rtList.add(s.getRTImageName());
+                            rtList.add(s.getSeriesInstanceUID());
 
                             rtList.add("RTImageLabel");
                             rtList.add(s.getRTImageLabel());
-                            rtList.add("");
+                            rtList.add(s.getRTImageLabel());
+                            rtList.add(s.getSeriesInstanceUID());
 
                             rtList.add("RTImageDescription");
                             rtList.add(s.getRTImageDescription());
-                            rtList.add("");
+                            rtList.add(s.getRTImageDescription());
+                            rtList.add(s.getSeriesInstanceUID());
                             break;
                         default:
 
@@ -1018,19 +996,130 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         TableCellRenderer renderer = new EvenOddRenderer();
         seriesTable.setDefaultRenderer(Object.class, renderer);
         seriesTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        seriesTable.getTableHeader().setEnabled(false);
 
         seriesTable.getColumnModel().getColumn(0).setMaxWidth(100);
         seriesTable.getColumnModel().getColumn(0).setMinWidth(70);
-        seriesTable.getColumnModel().getColumn(1).setMinWidth(200);
-        seriesTable.getColumnModel().getColumn(2).setMinWidth(200);
+        seriesTable.getColumnModel().getColumn(1).setMinWidth(260);
+        seriesTable.getColumnModel().getColumn(2).setMinWidth(260);
         seriesTable.getColumnModel().getColumn(3).setMinWidth(430);
 
         JScrollPane seriesTableScrollPane= new JScrollPane(seriesTable);
         seriesTable.setFillsViewportHeight(true);
 
-        dicomSeriesPanel.add(seriesButtonPanel);
-        dicomSeriesPanel.add(seriesTableScrollPane);
+        seriesTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (seriesTable.getValueAt(seriesTable.getSelectedRow(), 0).toString().contains("RT")) {
+                    seriesTabbedPane.setEnabledAt(1, true);
+                }
+                else {
+                    seriesTabbedPane.setEnabledAt(1, false);
+                }
 
+
+                siuidField.setText(seriesTable.getValueAt(seriesTable.getSelectedRow(), 3).toString());
+                }
+        });
+
+        seriesTabbedPane.addTab("Modalities", null, seriesTableScrollPane,
+                "Overview of the selected modalities. " +
+                        "Select a modality and go to 'Modify descriptions' tab " +
+                        "to change the corresponding values.");
+
+
+        /*--------------second-tab---------------------------------------*/
+
+        String[] rtColumnNames = {"Tag",
+                "original Description",
+                "new Description",
+                "siUID"};
+
+        Object[][] rtTempData = new Object[rtList.size() / 4][4];
+        for (int i = 0; i < rtList.size(); i++) {
+            rtTempData[i / 4][i % 4] = rtList.get(i);
+        }
+
+        rtTableModel = new DefaultTableModel(rtTempData, rtColumnNames){
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // make read only fields except column 3
+                return column == 2;
+            }
+        };
+
+        JTable rtTable = new JTable(rtTableModel);
+        rtTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
+        TableCellRenderer rtRenderer = new EvenOddRenderer();
+        rtTable.setDefaultRenderer(Object.class, rtRenderer);
+        rtTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        rtTable.getTableHeader().setEnabled(false);
+
+        rtTable.getColumnModel().getColumn(0).setMinWidth(140);
+        rtTable.getColumnModel().getColumn(1).setMinWidth(230);
+        rtTable.getColumnModel().getColumn(2).setMinWidth(230);
+        rtTable.getColumnModel().getColumn(3).setMinWidth(450);
+
+        JScrollPane rtTableScrollPane= new JScrollPane(rtTable);
+        rtTable.setFillsViewportHeight(true);
+
+        TableRowSorter<TableModel> rowSorter = new TableRowSorter<>(rtTable.getModel());
+        rtTable.setRowSorter(rowSorter);
+
+        rtTable.getColumnModel().removeColumn(rtTable.getColumnModel().getColumn(3));
+
+        JPanel rtPanel = new JPanel();
+        rtPanel.setLayout(new BoxLayout(rtPanel, BoxLayout.Y_AXIS));
+
+        TitledBorder rtBorder = new TitledBorder("RT Descriptions");
+        rtBorder.setTitleJustification(TitledBorder.LEFT);
+        rtBorder.setTitlePosition(TitledBorder.TOP);
+        rtPanel.setBorder(rtBorder);
+        rtPanel.add(rtTableScrollPane);
+
+        JPanel dicomModalityPanel = new JPanel();
+
+        siuidField = new JTextField();
+        siuidField.setVisible(false);
+        siuidField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                String text = siuidField.getText();
+                if (text.trim().length() == 0) {
+                    rowSorter.setRowFilter(null);
+                }
+                else {
+                    rowSorter.setRowFilter(RowFilter.regexFilter(text));
+                }
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                String text = siuidField.getText();
+                if (text.trim().length() == 0) {
+                    rowSorter.setRowFilter(null);
+                }
+                else {
+                    rowSorter.setRowFilter(RowFilter.regexFilter(text));
+                }
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+
+            }
+        });
+
+        dicomModalityPanel.add(siuidField);
+        dicomModalityPanel.add(rtTableScrollPane);
+        dicomModalityPanel.setLayout(new BoxLayout(dicomModalityPanel, BoxLayout.Y_AXIS));
+        seriesTabbedPane.addTab("Modify descriptions", null, dicomModalityPanel,
+                "Change values of selected modality.");
+
+        seriesTabbedPane.setEnabledAt(1, false);
+
+        dicomSeriesPanel.add(seriesTabbedPane);
+        dicomSeriesPanel.add(seriesButtonPanel);
         /*-------------------------------------------------------------*/
 
         userOKButton = new JButton("OK");
@@ -1054,8 +1143,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         userDialogFrame.add(dicomSeriesPanel, gbc);
         userDialogFrame.add(naviButtonPanel);
 
-        userDialogFrame.setMinimumSize(new Dimension(this.getWidth(), this.getHeight()));
-        userDialogFrame.setLocation(this.getLocation());
+        userDialogFrame.pack();
+        userDialogFrame.setLocation((this.getWidth() - userDialogFrame.getWidth()) / 2,
+                (this.getHeight() - userDialogFrame.getHeight()) / 2);
         userDialogFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         userDialogFrame.setVisible(true);
 
@@ -1073,13 +1163,14 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
             Color foreground, background;
             if (column % 2 == 0) {
                 foreground = Color.black;
-                background = Color.green;
+                background = enabledCellColor;
             } else {
                 foreground = Color.black;
-                background = Color.pink;
+                background = disabledCellColor;
             }
             renderer.setForeground(foreground);
             renderer.setBackground(background);
+
             return renderer;
         }
     }
@@ -1366,7 +1457,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private void centerFrame() {
         Toolkit t = getToolkit();
         Dimension scr = t.getScreenSize();
-        //int thisWidth = 2*(scr.width - instructionsWidth)/3;
         int thisWidth = scr.width;
         if (scr.width >= 960) {
             thisWidth = 960;
@@ -1416,7 +1506,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         TitleLabel(String s) {
             super(s);
             setFont(new Font("SansSerif", Font.BOLD, 24));
-            setForeground(Color.BLUE);
+            setForeground(blueColor);
         }
     }
 
@@ -1435,7 +1525,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         FieldLabel() {
             super("Destination URL:");
             setFont(new Font("SansSerif", Font.BOLD, 12));
-            setForeground(Color.BLUE);
+            setForeground(blueColor);
         }
     }
 
@@ -1443,9 +1533,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         FieldButton(String s) {
             super(s);
             setFont(new Font("SansSerif", Font.BOLD, 12));
-            setForeground(Color.BLUE);
+            setForeground(blueColor);
             setAlignmentX(0.5f);
         }
     }
-
 }

@@ -30,6 +30,7 @@ public class StudyList implements ActionListener {
     private String studyType = "";
     private String birthdate = "";
     private String patientsGender = "";
+    private String studyDescription = "";
 
     public StudyList(File directory, boolean radioMode,
                      boolean acceptNonImageObjects, boolean showDicomFiles) {
@@ -58,6 +59,10 @@ public class StudyList implements ActionListener {
             deselectAll();
             table.get(firstStudy).setSelected(true);
         }
+    }
+
+    public String getStudyDescriptionOfFirstStudy() {
+        return studyDescription;
     }
 
     private void deselectAll() {
@@ -138,6 +143,7 @@ public class StudyList implements ActionListener {
                     if (!first) {
                         first = true;
                         firstStudy = study.getSiuid();
+                        studyDescription = study.getStudyDescription();
                     }
                     study.display(dp);
                     wrongStudyType = study.isStudyTypeWrong();
