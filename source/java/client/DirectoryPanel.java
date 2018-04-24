@@ -14,8 +14,8 @@ import org.rsna.ui.RowLayout;
 
 public class DirectoryPanel extends JPanel {
 
-    RowLayout layout;
-    boolean deleteOnSuccess = false;
+    private final RowLayout layout;
+    private boolean deleteOnSuccess = false;
 
     public DirectoryPanel() {
         super();

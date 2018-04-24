@@ -10,7 +10,7 @@ package client;
 import java.awt.*;
 import javax.swing.*;
 
-public class PatientName extends JButton {
+class PatientName extends JButton {
 
     public PatientName(String patientName) {
         super();

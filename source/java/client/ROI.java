@@ -7,7 +7,7 @@ import java.util.LinkedList;
 
 import org.rsna.ui.RowLayout;
 
-public class ROI implements ActionListener {
+class ROI implements ActionListener {
 
     private final ROICheckBox cb;
     private final ROIName rname;

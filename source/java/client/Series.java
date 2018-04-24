@@ -216,7 +216,7 @@ public class Series implements ActionListener, Comparable<Series> {
         return list.getFirst().getROIRefFrameOfRef();
     }
 
-    public boolean frameOfRefOK() {
+    private boolean frameOfRefOK() {
         return list.getFirst().frameOfRefsOK()
                 && list.getFirst().hasROIonlyOneRefFrameOfRefUID();
     }

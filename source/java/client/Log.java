@@ -23,7 +23,7 @@ public class Log {
         return logInstance;
     }
 
-    protected Log() {
+    private Log() {
         log = new StringBuffer();
     }
 

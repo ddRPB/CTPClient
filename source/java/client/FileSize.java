@@ -11,7 +11,7 @@ import java.awt.*;
 import java.io.*;
 import javax.swing.*;
 
-public class FileSize extends JLabel {
+class FileSize extends JLabel {
 
     public FileSize(File file) {
         super();

@@ -14,7 +14,7 @@ import javax.swing.*;
 import org.rsna.ui.*;
 import org.w3c.dom.*;
 
-public class DialogPanel extends JPanel {
+class DialogPanel extends JPanel {
 
     private static final Color headingColor = Color.BLUE;
     private static final Color paragraphColor = Color.BLACK;
@@ -23,9 +23,9 @@ public class DialogPanel extends JPanel {
     private static final Font labelFont = new Font("SansSerif", Font.BOLD, 12);
     private static final Font fieldFont = new Font("Monospaced", Font.PLAIN, 12);
     private static final int fieldWidth = 30;
-    private Hashtable<String, JTextField> fields;
-    private String title;
-    private boolean sessionMode;
+    private final Hashtable<String, JTextField> fields;
+    private final String title;
+    private final boolean sessionMode;
 
     public DialogPanel(Document doc, Properties config) {
         super();

@@ -3,7 +3,7 @@ package client;
 import javax.swing.*;
 import java.awt.*;
 
-public class ROIName extends JButton {
+class ROIName extends JButton {
 
     private final String name;
 

@@ -33,19 +33,19 @@ import org.rsna.util.*;
 
 import org.dcm4che.dict.DictionaryFactory;
 
-public class SenderThread extends Thread {
+class SenderThread extends Thread {
 
     private final StudyList studyList;
     private final String httpURLString;
     private final String dicomURLString;
 
     private final String stowURLString;
-    private String username;
-    private boolean authenticate;
+    private final String username;
+    private final boolean authenticate;
     private String authHeader = "";
 
-    private File exportDirectory;
-    private boolean renameFiles;
+    private final File exportDirectory;
+    private final boolean renameFiles;
     private final DirectoryPanel dp;
     private final CTPClient parent;
     private final Properties daScriptProps;
@@ -56,8 +56,8 @@ public class SenderThread extends Thread {
     private final boolean acceptNonImageObjects;
     private final boolean dfEnabled;
     private final boolean dpaEnabled;
-    private boolean setBurnedInAnnotation;
-    private boolean zip;
+    private final boolean setBurnedInAnnotation;
+    private final boolean zip;
     private DicomStorageSCU scu = null;
     private IntegerTable integerTable = null;
 

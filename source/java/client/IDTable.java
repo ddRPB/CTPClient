@@ -17,7 +17,7 @@ import org.rsna.util.StringUtil;
 
 public class IDTable {
 
-    Hashtable<String, PatientInfo> table;
+    private final Hashtable<String, PatientInfo> table;
 
     public IDTable() {
         table = new Hashtable<String, PatientInfo>();
@@ -61,12 +61,12 @@ public class IDTable {
     }
 
     class PatientInfo {
-        String phiPatientName;
-        String phiPatientID;
-        String anonPatientID;
-        String datetime;
+        final String phiPatientName;
+        final String phiPatientID;
+        final String anonPatientID;
+        final String datetime;
 
-        public PatientInfo(String phiPatientName, String phiPatientID, String anonPatientID) {
+        PatientInfo(String phiPatientName, String phiPatientID, String anonPatientID) {
             this.phiPatientName = phiPatientName.replaceAll(",", " ");
             this.phiPatientID = phiPatientID;
             this.anonPatientID = anonPatientID;

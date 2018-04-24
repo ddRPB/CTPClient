@@ -11,9 +11,9 @@ import java.awt.*;
 import java.io.*;
 import javax.swing.*;
 
-public class DirectoryName extends JLabel {
+class DirectoryName extends JLabel {
 
-    File dir;
+    private final File dir;
 
     public DirectoryName(File dir) {
         super(dir.getAbsolutePath());

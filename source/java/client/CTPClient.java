@@ -109,7 +109,17 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     String selectedStudyInstanceUID;
     private JTextField siuidField;
     private JLabel target;
-    String hashedStudyInstanceUID = "0815";
+    String hashedStudyInstanceUID = "";
+
+    // Parameters for EDC - reference
+    String studyOID = "";
+    String subjectKey = "";
+    String studyEventOID = "";
+    String eventRepeatKey = "";
+    String formOID = "";
+    String itemGroupOID = "";
+    String patientIDItemOID = "";
+    String dicomStudyItemOID = "";
 
     private CTPClient(String[] args) {
         super();
@@ -183,6 +193,18 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         //Get the gender of the patient to crosscheck
         requiredGender = Objects.toString(config.getProperty("gender"), "");
+
+        //Get the EDC Parameters
+        studyOID = Objects.toString(config.getProperty("studyOID"), "");
+        subjectKey = Objects.toString(config.getProperty("subjectKey"), "");
+        studyEventOID = Objects.toString(config.getProperty("studyEventOID"), "");
+        eventRepeatKey = Objects.toString(config.getProperty("eventRepeatKey"), "");
+        formOID = Objects.toString(config.getProperty("formOID"), "");
+        itemGroupOID = Objects.toString(config.getProperty("itemGroupOID"), "");
+        patientIDItemOID = Objects.toString(config.getProperty("patientIDItemOID"), "");
+        dicomStudyItemOID = Objects.toString(config.getProperty("dicomStudyItemOID"), "");
+
+        System.out.println(requiredGender);
 
         //Set the SSL params
         getKeystore();
@@ -756,9 +778,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JPanel idPanel = new JPanel();
         idPanel.setLayout(new FlowLayout());
 
-        JLabel dicomPatientLabel = new JLabel("ID:         ");
+        JLabel dicomPatientLabel = new JLabel("ID: ");
+        dicomPatientLabel.setPreferredSize(new Dimension(50, 24));
+
         JTextField idField = new JTextField(selectedStudy.getPatientID());
-        idField.setEnabled(false);
+        idField.setEditable(false);
         idField.setBackground(disabledCellColor);
         idField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel01 = new JLabel(" -> ");
@@ -777,10 +801,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JPanel namePanel = new JPanel();
         namePanel.setLayout(new FlowLayout());
 
-        JLabel dicomNameLabel = new JLabel("Name:    ");
+        JLabel dicomNameLabel = new JLabel("Name: ");
+        dicomNameLabel.setPreferredSize(new Dimension(50, 24));
 
         JTextField nameField = new JTextField(selectedStudy.getPatientname());
-        nameField.setEnabled(false);
+        nameField.setEditable(false);
         nameField.setBackground(disabledCellColor);
         nameField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel02 = new JLabel(" -> ");
@@ -798,9 +823,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JPanel genderPanel = new JPanel();
         genderPanel.setLayout(new FlowLayout());
 
-        JLabel dicomGenderLabel = new JLabel("Gender:  ");
+        JLabel dicomGenderLabel = new JLabel("Gender: ");
+        dicomGenderLabel.setPreferredSize(new Dimension(50, 24));
+
         JTextField genderField = new JTextField(selectedStudy.getGender());
-        genderField.setEnabled(false);
+        genderField.setEditable(false);
         genderField.setBackground(disabledCellColor);
         genderField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel03 = new JLabel(" -> ");
@@ -817,9 +844,11 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         JPanel dobPanel = new JPanel();
         dobPanel.setLayout(new FlowLayout());
 
-        JLabel dicomDOBLabel = new JLabel("DOB:      ");
+        JLabel dicomDOBLabel = new JLabel("DOB: ");
+        dicomDOBLabel.setPreferredSize(new Dimension(50, 24));
+
         JTextField dobField = new JTextField(selectedStudy.getPatientBirthDate());
-        dobField.setEnabled(false);
+        dobField.setEditable(false);
         dobField.setBackground(disabledCellColor);
         dobField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel04 = new JLabel(" -> ");
@@ -850,8 +879,8 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         JLabel dicomTypeLabel = new JLabel("Study type: ");
         JTextField typeField = new JTextField(selectedStudy.getStudyType());
-        typeField.setEnabled(false);
-        typeField.setBackground(disabledCellColor);
+        typeField.setEditable(false);
+        typeField.setBackground(enabledCellColor);
         typeField.setPreferredSize(new Dimension(250, 24));
 
         typePanel.add(dicomTypeLabel);
@@ -863,7 +892,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         JLabel dicomDescLabel = new JLabel("Description: ");
         descField = new JTextField(selectedStudy.getStudyDescription());
-        descField.setEnabled(false);
+        descField.setEditable(false);
         descField.setBackground(disabledCellColor);
         descField.setPreferredSize(new Dimension(250, 24));
         JLabel arrowLabel05 = new JLabel(" -> ");
@@ -1110,6 +1139,20 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
             }
         });
 
+        seriesTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                JTable t = (JTable)e.getSource();
+                Point p = e.getPoint();
+                int row = t.rowAtPoint(p);
+                int col = t.columnAtPoint(p);
+                String modality = (String) t.getValueAt(row, 0);
+                if (col == 0 && e.getClickCount() == 2 && (modality.contains("RT"))) {
+                    seriesTabbedPane.setSelectedIndex(1);
+                }
+            }
+        });
+
         dicomModalityPanel.add(siuidField);
         dicomModalityPanel.add(rtTableScrollPane);
         dicomModalityPanel.setLayout(new BoxLayout(dicomModalityPanel, BoxLayout.Y_AXIS));
@@ -1144,8 +1187,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         userDialogFrame.add(naviButtonPanel);
 
         userDialogFrame.pack();
-        userDialogFrame.setLocation((this.getWidth() - userDialogFrame.getWidth()) / 2,
-                (this.getHeight() - userDialogFrame.getHeight()) / 2);
+
+        userDialogFrame.setLocation(this.getLocation().x + ((this.getWidth() - userDialogFrame.getWidth()) / 2),
+               this.getLocation().y + ((this.getHeight() - userDialogFrame.getHeight()) / 2));
         userDialogFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         userDialogFrame.setVisible(true);
 

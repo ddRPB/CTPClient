@@ -11,7 +11,7 @@ import java.awt.*;
 import java.util.LinkedList;
 import javax.swing.*;
 
-public class StudyName extends JButton {
+class StudyName extends JButton {
 
     private int numberOfSeries = 0;
     private String classification = "";
