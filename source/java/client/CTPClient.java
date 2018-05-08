@@ -686,6 +686,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
                 apiKey = (String) jsonObj.get("apiKey");
 
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
