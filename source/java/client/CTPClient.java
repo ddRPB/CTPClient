@@ -20,7 +20,9 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.*;
 
+import org.json.simple.*;
 import org.apache.log4j.*;
+import org.json.simple.parser.JSONParser;
 import org.rsna.ctp.stdstages.anonymizer.dicom.DAScript;
 import org.rsna.ctp.stdstages.anonymizer.dicom.PixelScript;
 import org.rsna.ctp.stdstages.anonymizer.LookupTable;
@@ -81,7 +83,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private final String stowPassword;
     private final String requiredStudyType;
     private final String requiredGender;
-    private final String requiredPatientsBirthDate;
+    private String requiredPatientsBirthDate;
     private final String pseudonym;
     String newStudyDescription = null;
     private volatile boolean sending = false;
@@ -111,6 +113,9 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private JLabel target;
     String hashedStudyInstanceUID = "";
 
+    String sessionID = "";
+    String apiKey = "";
+
     // Parameters for EDC - reference
     String studyOID = "";
     String subjectKey = "";
@@ -120,6 +125,13 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     String itemGroupOID = "";
     String patientIDItemOID = "";
     String dicomStudyItemOID = "";
+
+
+    // URL for portal to obtain API-Key
+    String protocol = "http://";
+    String host = "g40rpbtrialsdev.med.tu-dresden.de:8080";
+    String dir = "/pacs/apiKey.faces?sessionid=";
+    String portalURL = protocol + host + dir;
 
     private CTPClient(String[] args) {
         super();
@@ -185,6 +197,10 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
         //Get the birth date to crosscheck later on
         requiredPatientsBirthDate = Objects.toString(config.getProperty("birthDate"), "");
+        // convert from iso date to dicom date
+        if (requiredPatientsBirthDate.length() == 10) {
+            requiredPatientsBirthDate = requiredPatientsBirthDate.replace("-", "");
+        }
 
         pseudonym = Objects.toString(config.getProperty("pseudonym"), "");
         if (!pseudonym.equals("")) {
@@ -192,7 +208,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         }
 
         //Get the gender of the patient to crosscheck
-        requiredGender = Objects.toString(config.getProperty("gender"), "");
+        requiredGender = Objects.toString(config.getProperty("gender"), "").toUpperCase();
+
+        sessionID = Objects.toString(config.getProperty("sessionid"), "");
+        portalURL += sessionID;
+
+        obtaintAPIkey(portalURL);
 
         //Get the EDC Parameters
         studyOID = Objects.toString(config.getProperty("studyOID"), "");
@@ -203,8 +224,6 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         itemGroupOID = Objects.toString(config.getProperty("itemGroupOID"), "");
         patientIDItemOID = Objects.toString(config.getProperty("patientIDItemOID"), "");
         dicomStudyItemOID = Objects.toString(config.getProperty("dicomStudyItemOID"), "");
-
-        System.out.println(requiredGender);
 
         //Set the SSL params
         getKeystore();
@@ -639,6 +658,42 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
     public void componentMoved(ComponentEvent e) {
 
+    }
+
+    private void obtaintAPIkey(String portalURL) {
+        Log log = Log.getInstance();
+        String exMsg = "";
+        try {
+
+            URL obj = new URL(portalURL);
+            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+            con.setRequestMethod("GET");
+            int responseCode = con.getResponseCode();
+            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            JSONParser parser = new JSONParser();
+            try {
+
+                Object simpleObj = parser.parse(response.toString());
+                JSONObject jsonObj = (JSONObject) simpleObj;
+
+                apiKey = (String) jsonObj.get("apiKey");
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        } catch (Exception ex) {
+            exMsg = ex.getMessage();
+        }
+        if (!exMsg.equals("")) log.append("Exception: " + exMsg);
     }
 
     public static void openInstructionWebPage() {
