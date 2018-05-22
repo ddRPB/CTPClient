@@ -475,8 +475,13 @@ class SenderThread extends Thread {
             conn.setConnectTimeout(readTimeout);
             if (authenticate) conn.setRequestProperty("Authorization", authHeader);
 
+            conn.setRequestProperty("X-Api-Key", parent.apiKey);
+
             //Send the file to the server
-            ClientHttpRequest req = new ClientHttpRequest(conn, "multipart/related; type=application/dicom;");
+            ClientHttpRequest req = new ClientHttpRequest(conn,
+                    "multipart/related; type=\"application/dicom\";");
+                    //quotes are used, since there is dcm4che example code using it this way
+
             req.addFilePart(fileToExport, "application/dicom");
             InputStream is = req.post();
             String response = FileUtil.getText(is, "UTF-8");

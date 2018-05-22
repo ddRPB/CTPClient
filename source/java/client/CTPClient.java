@@ -40,7 +40,7 @@ import org.w3c.dom.Document;
 @SuppressWarnings("ALL")
 public class CTPClient extends JFrame implements ActionListener, ComponentListener {
 
-    private static final String title = "CTP Client - DKTK";
+    private static final String title = "CTP Client - DKTK - deactivated sanity checks";
 
     private static final Color bgColor = new Color(0xc6d8f9);
     private static final Color disabledCellColor = Color.PINK;
@@ -84,7 +84,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private final String requiredStudyType;
     private final String requiredGender;
     private String requiredPatientsBirthDate;
-    private final String pseudonym;
+    private String pseudonym;
     String newStudyDescription = null;
     private volatile boolean sending = false;
     private FieldButton showMemoryButton = null;
@@ -203,6 +203,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         }
 
         pseudonym = Objects.toString(config.getProperty("pseudonym"), "");
+
         if (!pseudonym.equals("")) {
             target.setText(target.getText() + " - " + pseudonym);
         }
@@ -460,11 +461,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
-                } else if ((requiredPatientsBirthDate.length() == 4
+                /*} else if ((requiredPatientsBirthDate.length() == 4
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthYear()))
                         || (requiredPatientsBirthDate.length() == 8
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthDate()))){
-                    startButton.setEnabled(false);                    showSelectionInfo("birthdate");
+                    startButton.setEnabled(false);
+                    showSelectionInfo("birthdate");*/
                 } else if (!requiredGender.equals(studyList.getPatientsGender())
                         && !requiredGender.equals("") &&
                         !studyList.getPatientsGender().equals("")) {
@@ -491,12 +493,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
-                } else if ((requiredPatientsBirthDate.length() == 4
+                /*} else if ((requiredPatientsBirthDate.length() == 4
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthYear()))
                         || (requiredPatientsBirthDate.length() == 8
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthDate()))){
                     startButton.setEnabled(false);
-                    showSelectionInfo("birthdate");
+                    showSelectionInfo("birthdate");*/
                 }
                 sp.getVerticalScrollBar().setValue(0);
                 setWaitCursor(false);
@@ -663,12 +665,13 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
     private void obtaintAPIkey(String portalURL) {
         Log log = Log.getInstance();
         String exMsg = "";
+        int responseCode = 0;
         try {
 
             URL obj = new URL(portalURL);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
             con.setRequestMethod("GET");
-            int responseCode = con.getResponseCode();
+            responseCode = con.getResponseCode();
             BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
             String inputLine;
             StringBuffer response = new StringBuffer();
@@ -694,7 +697,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
         } catch (Exception ex) {
             exMsg = ex.getMessage();
         }
-        if (!exMsg.equals("")) log.append("Exception: " + exMsg);
+        if (!exMsg.equals("")) log.append("Http Get Exception: " + exMsg + " --- ResponseCode: " + responseCode);
     }
 
     public static void openInstructionWebPage() {
