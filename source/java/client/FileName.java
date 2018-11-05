@@ -1,172 +1,501 @@
 /*---------------------------------------------------------------
-*  Copyright 2014 by the Radiological Society of North America
-*
-*  This source software is released under the terms of the
-*  RSNA Public License (http://mirc.rsna.org/rsnapubliclicense)
-*----------------------------------------------------------------*/
+ *  Copyright 2014 by the Radiological Society of North America
+ *
+ *  This source software is released under the terms of the
+ *  RSNA Public License (http://mirc.rsna.org/rsnapubliclicense)
+ *----------------------------------------------------------------*/
 
 package client;
 
-import java.awt.*;
-import java.io.*;
-import javax.swing.*;
+import org.dcm4che.data.Dataset;
+import org.dcm4che.data.DcmElement;
+import org.dcm4che.dict.Tags;
 import org.rsna.ctp.objects.DicomObject;
 import org.rsna.ui.RowLayout;
 import org.rsna.util.StringUtil;
 
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.util.LinkedList;
+
 public class FileName implements Comparable<FileName> {
 
-	File file;
-	FileSize fileSize;
-	String patientName = "";
-	String patientID = "";
-	String studyInstanceUID = "";
-	String studyDate = "";
-	String modality = "";
-	int seriesNumberInt = 0;
-	int acquisitionNumberInt = 0;
-	int instanceNumberInt = 0;
-	boolean isDICOM = false;
-	boolean isImage = false;
-	FileCheckBox cb = null;
-	StatusText statusText = null;
-	String description = "";
+    private final File file;
+    private final FileSize fileSize;
+    private final FileCheckBox cb;
+    private final StatusText statusText;
+    private final LinkedList<String> listRoiRefFrameOfRef;
+    private final LinkedList<String> listRefFrameOfRefFrameOfRefUID;
+    private final LinkedList<String> listROINames;
+    private final LinkedList<String> listROINumber;
+    private final LinkedList<String> listRefROINumber;
+    private final LinkedList<String> listROIObservationLabel;
+    private final LinkedList<String> listROIInterpretedType;
+    private final LinkedList<String> listRefRTPlanSequence;
+    private String patientName = "";
+    private String patientID = "";
+    private String studyInstanceUID = "";
+    private String seriesInstanceUID = "";
+    private String studyDate = "";
+    private String seriesDate = "";
+    private String modality = "";
+    private int seriesNumberInt = 0;
+    private int acquisitionNumberInt = 0;
+    private int instanceNumberInt = 0;
+    private boolean isDICOM = false;
+    private boolean isImage = false;
+    private String studyDescription = "";
+    private String displayedSeriesDescription = "";
+    private String seriesDescription = "";
+    private String frameOfReference = "";
+    private boolean oncentraCheck = false;
+    private String refSOPClassUID = "";
+    private String refStructSOPInst = "";
+    private String refDoseSOPInst = "";
+    private DicomObject dob;
+    private String rtDoseComment = "";
+    private String rtPlanLabel = "";
+    private String rtPlanName = "";
+    private String rtPlanDescription = "";
+    private String ssLabel = "";
+    private String ssName = "";
+    private String ssDescription = "";
+    private String rtImageName = "";
+    private String rtImageLabel = "";
+    private String rtImageDescription = "";
 
-	public FileName(File file) {
-		this.file = file;
-		cb = new FileCheckBox();
-		statusText = new StatusText();
-		fileSize = new FileSize(file);
-		try {
-			DicomObject dob = new DicomObject(file);
-			isDICOM = true;
-			isImage = dob.isImage();
-			patientName = fixNull(dob.getPatientName());
-			patientID = fixNull(dob.getPatientID());
-			studyInstanceUID = fixNull(dob.getStudyInstanceUID());
-			modality = fixNull(dob.getModality());
-			studyDate = fixDate(dob.getStudyDate());
-			String seriesNumber = fixNull(dob.getSeriesNumber());
-			String acquisitionNumber = fixNull(dob.getAcquisitionNumber());
-			String instanceNumber = fixNull(dob.getInstanceNumber());
-			seriesNumberInt = StringUtil.getInt(seriesNumber);
-			acquisitionNumberInt = StringUtil.getInt(acquisitionNumber);
-			instanceNumberInt = StringUtil.getInt(instanceNumber);
-			if (isImage) {
-				description += getText("Series:", seriesNumber, " ");
-				description += getText("Acquisition:", acquisitionNumber, " ");
-				description += getText("Image:", instanceNumber, "");
-			}
-			else description += fixNull(dob.getSOPClassName());
-		}
-		catch (Exception nonDICOM) { }
-	}
+    public FileName(File file) {
+        this.file = file;
+        cb = new FileCheckBox();
+        listROINames = new LinkedList<String>();
+        listROINumber = new LinkedList<String>();
+        listRefROINumber = new LinkedList<String>();
+        listROIObservationLabel = new LinkedList<String>();
+        listROIInterpretedType = new LinkedList<String>();
+        listRoiRefFrameOfRef = new LinkedList<String>();
+        listRefFrameOfRefFrameOfRefUID = new LinkedList<String>();
+        listRefRTPlanSequence = new LinkedList<String>();
+        statusText = new StatusText();
+        fileSize = new FileSize(file);
+        try {
+            dob = new DicomObject(file);
+            isDICOM = true;
+            isImage = dob.isImage();
+            patientName = fixNull(dob.getPatientName());
+            patientID = fixNull(dob.getPatientID());
+            studyInstanceUID = fixNull(dob.getStudyInstanceUID());
+            seriesInstanceUID = fixNull(dob.getSeriesInstanceUID());
+            modality = fixNull(dob.getModality());
+            studyDate = fixDate(dob.getStudyDate());
+            String seriesNumber = fixNull(dob.getSeriesNumber());
+            String acquisitionNumber = fixNull(dob.getAcquisitionNumber());
+            String instanceNumber = fixNull(dob.getInstanceNumber());
+            seriesNumberInt = StringUtil.getInt(seriesNumber);
+            acquisitionNumberInt = StringUtil.getInt(acquisitionNumber);
+            instanceNumberInt = StringUtil.getInt(instanceNumber);
 
-	private String fixNull(String s) {
-		return (s == null) ? "" : s;
-	}
+            studyDescription = fixNull(dob.getStudyDescription());
+            frameOfReference = fixNull(dob.getElementValue(Tags.FrameOfReferenceUID));
+            seriesDescription = fixNull(dob.getSeriesDescription());
 
-	public File getFile() {
-		return file;
-	}
+            //look for a precise description
+            switch (modality) {
+                case "RTDOSE":
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.DoseComment));
+                    rtDoseComment = displayedSeriesDescription;
+                    seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
 
-	public String getPatientName() {
-		return patientName;
-	}
+                    // for RTDOSE -> RTPLAN check
+                    DcmElement refRTPlanSeq = dob.getDataset().get(Tags.RefRTPlanSeq);
+                    if (refRTPlanSeq != null) {
+                        for (int i = 0; i < refRTPlanSeq.countItems(); i++) {
+                            Dataset dcm = refRTPlanSeq.getItem(i);
+                            listRefRTPlanSequence.add(dcm.getString(Tags.RefSOPInstanceUID));
+                        }
+                    }
 
-	public String getPatientID() {
-		return patientID;
-	}
+                    //for multiplan check, find out rtstruct if available
+                    DcmElement refStructureSet = dob.getDataset().get(Tags.RefStructureSetSeq);
+                    if (refStructureSet != null) {
+                        for (int i = 0; i < refStructureSet.countItems(); i++) {
+                            Dataset dcm = refStructureSet.getItem(i);
+                            refStructSOPInst = dcm.getString(Tags.RefSOPInstanceUID);
+                        }
+                    }
 
-	public String getStudyInstanceUID() {
-		return studyInstanceUID;
-	}
+                    break;
+                case "RTPLAN":
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTPlanLabel));
+                    rtPlanLabel = displayedSeriesDescription;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTPlanName));
+                        rtPlanName = displayedSeriesDescription;
+                    }
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTPlanDescription));
+                        rtPlanDescription = displayedSeriesDescription;
+                    }
+                    seriesDate = fixDate(dob.getElementValue(Tags.RTPlanDate));
 
-	public String getStudyDate() {
-		return studyDate;
-	}
+                    DcmElement refStructSet = dob.getDataset().get(Tags.RefStructureSetSeq);
+                    if (refStructSet != null) {
+                        for (int i = 0; i < refStructSet.countItems(); i++) {
+                            Dataset dcm = refStructSet.getItem(i);
+                            refStructSOPInst = dcm.getString(Tags.RefSOPInstanceUID);
+                        }
+                    }
 
-	public String getModality() {
-		return modality;
-	}
+                    DcmElement refDoseSeq = dob.getDataset().get(Tags.RefDoseSeq);
+                    if (refDoseSeq != null) {
+                        for (int i = 0; i < refDoseSeq.countItems(); i++) {
+                            Dataset dcm = refDoseSeq.getItem(i);
+                            refDoseSOPInst = dcm.getString(Tags.RefSOPInstanceUID);
+                        }
+                    }
+                    break;
+                case "RTSTRUCT":
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.StructureSetLabel));
+                    ssLabel = displayedSeriesDescription;
+                    String temp = fixNull(dob.getElementValue(Tags.StructureSetName));
+                    ssName = temp;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription += temp;
+                    } else if(!temp.equals("")){
+                        displayedSeriesDescription += " - " + temp;
+                    }
 
-	private String fixDate(String s) {
-		if (s == null) s = "";
-		if (s.length() == 8) {
-			s = s.substring(0,4) + "." + s.substring(4,6) + "." + s.substring(6);
-		}
-		return s;
-	}
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.StructureSetDescription));
+                        ssDescription = displayedSeriesDescription;
+                    }
+                    seriesDate = fixDate(dob.getElementValue(Tags.StructureSetDate));
 
-	private String getText(String prefix, String s, String suffix) {
-		if (s.length() != 0) s = prefix + s + suffix;
-		return s;
-	}
 
-	public int compareTo(FileName fn) {
-		if (fn == null)  return 0;
-		int c;
-		if ( (c = this.patientID.compareTo(fn.patientID)) != 0 ) return c;
-		if ( (c = this.studyDate.compareTo(fn.studyDate)) != 0 ) return c;
-		if ( (c = this.studyInstanceUID.compareTo(fn.studyInstanceUID)) != 0 ) return c;
-		if ( (c = this.seriesNumberInt - fn.seriesNumberInt) != 0 ) return c;
-		if ( (c = this.acquisitionNumberInt - fn.acquisitionNumberInt) != 0 ) return c;
-		if ( (c = this.instanceNumberInt - fn.instanceNumberInt) != 0 ) return c;
-		return 0;
- 	}
+                    break;
+                case "RTIMAGE":
+                    displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTImageName));
+                    rtImageName = displayedSeriesDescription;
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTImageLabel));
+                        rtImageLabel = displayedSeriesDescription;
+                    }
+                    if (displayedSeriesDescription.equals("")) {
+                        displayedSeriesDescription = fixNull(dob.getElementValue(Tags.RTImageDescription));
+                        rtImageDescription = displayedSeriesDescription;
+                    }
+                    seriesDate = fixDate(dob.getElementValue(Tags.InstanceCreationDate));
+                    break;
+            }
 
- 	public boolean isSamePatient(FileName fn) {
-		if (fn == null) return false;
-		return (this.patientID.equals(fn.patientID));
-	}
+            if (displayedSeriesDescription.equals("")) {
+                displayedSeriesDescription = fixNull(dob.getSeriesDescription());
+            }
+            if (seriesDate.equals("")) {
+                seriesDate = fixDate(dob.getElementValue(Tags.SeriesDate));
+            }
 
-	public boolean isSameStudy(FileName fn) {
-		if (fn == null) return false;
-		return isSamePatient(fn) && (this.studyInstanceUID.equals(fn.studyInstanceUID));
-	}
 
-	public boolean isDICOM() {
-		return isDICOM;
-	}
+            if (modality.equals("RTSTRUCT")) {
+                //get ROI information
+                DcmElement roiSequence = dob.getDataset().get(Tags.StructureSetROISeq);
+                if (roiSequence != null) {
+                    for (int i = 0; i < roiSequence.countItems(); i++) {
+                        Dataset dcm = roiSequence.getItem(i);
+                        listROINames.add(dcm.getString(Tags.ROIName));
+                        listROINumber.add(dcm.getString(Tags.ROINumber));
 
-	public boolean isImage() {
-		return isImage;
-	}
+                        String temp = dcm.getString(Tags.RefFrameOfReferenceUID);
+                        if (!listRoiRefFrameOfRef.contains(temp)) {
+                            listRoiRefFrameOfRef.add(temp);
+                        }
+                    }
+                }
 
-	public void setSelected(boolean selected) {
-		cb.setSelected(selected);
-	}
+                DcmElement roiObservations = dob.getDataset().get(Tags.RTROIObservationsSeq);
+                if (roiObservations != null) {
+                    for (int i = 0; i < roiObservations.countItems(); i++) {
+                        Dataset dcm = roiObservations.getItem(i);
+                        listRefROINumber.add(dcm.getString(Tags.RefROINumber));
+                        listROIObservationLabel.add(fixNull(dcm.getString(Tags.ROIObservationLabel)));
+                        listROIInterpretedType.add(fixNull(dcm.getString(Tags.RTROIInterpretedType)));
+                    }
+                }
 
-	public boolean isSelected() {
-		return cb.isSelected();
-	}
+                //handle Oncentra MasterPlan case for ReferenceCheck
+                // read all the referenced frameofrefs -> should only be one
+                // return it and compare it with the refs in the other files
+                DcmElement refFrameOfRef = dob.getDataset().get(Tags.RefFrameOfReferenceSeq);
+                if (refFrameOfRef != null) {
+                    for (int i = 0; i < refFrameOfRef.countItems(); i++) {
+                        Dataset dcm = refFrameOfRef.getItem(i);
 
-	public StatusText getStatusText() {
-		return statusText;
-	}
+                        listRefFrameOfRefFrameOfRefUID.add(dcm.getString(Tags.FrameOfReferenceUID));
 
-	public FileCheckBox getCheckBox() {
-		return cb;
-	}
+                        DcmElement FrameOfReferenceRelationshipSeq = dcm.get(Tags.FrameOfReferenceRelationshipSeq);
 
-	public void display(DirectoryPanel dp) {
-		JPanel panel = new JPanel();
-		panel.setLayout(new RowLayout(0, 0));
-		panel.setBackground(Color.white);
-		JLabel name = new JLabel(file.getName());
-		name.setFont( new Font( "Monospaced", Font.PLAIN, 12 ) );
-		name.setForeground( Color.BLACK );
-		panel.add(name);
-		panel.add(RowLayout.crlf());
-		panel.add(new JLabel(description));
-		panel.add(RowLayout.crlf());
+                        if (FrameOfReferenceRelationshipSeq != null) {
+                            for (int y = 0; y < FrameOfReferenceRelationshipSeq.countItems(); y++) {
+                                Dataset dataset = FrameOfReferenceRelationshipSeq.getItem(y);
 
-		dp.add(cb);
-		dp.add(panel);
-		dp.add(Box.createHorizontalStrut(20));
-		dp.add(fileSize);
-		dp.add(statusText);
-		dp.add(RowLayout.crlf());
-	}
+                                String transformationComment =
+                                        dataset.getString(Tags.FrameOfReferenceTransformationComment);
+                                if (transformationComment.equals("Treatment planning reference point")) {
+                                    oncentraCheck = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                DcmElement roiContourSeq = dob.getDataset().get(Tags.ROIContourSeq);
+                if (roiContourSeq != null) {
+                    for (int i = 0; i < roiContourSeq.countItems(); i++) {
+                        Dataset dcm = roiContourSeq.getItem(i);
+                        DcmElement contourSeq = dcm.get(Tags.ContourSeq);
+                        for (int j = 0; j < contourSeq.countItems(); j++) {
+                            Dataset dc = contourSeq.getItem(j);
+                            DcmElement contourImageSeq = dc.get(Tags.ContourImageSeq);
+                            for (int k = 0; k < contourImageSeq.countItems(); k++) {
+                                Dataset d = contourImageSeq.getItem(k);
+                                refSOPClassUID = d.getString(Tags.RefSOPClassUID);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception nonDICOM) {
+        }
+    }
+
+    public String getRtPlanLabel() {
+        return rtPlanLabel;
+    }
+
+    public String getRtPlanName() {
+        return rtPlanName;
+    }
+
+    public String getRtPlanDescription() {
+        return rtPlanDescription;
+    }
+
+    public String getSsLabel() {
+        return ssLabel;
+    }
+
+    public String getSsName() {
+        return ssName;
+    }
+
+    public String getSsDescription() {
+        return ssDescription;
+    }
+
+    public String getRtImageName() {
+        return rtImageName;
+    }
+
+    public String getRtImageLabel() {
+
+        return rtImageLabel;
+    }
+
+    public String getRtImageDescription() {
+
+        return rtImageDescription;
+    }
+
+    public String getRtDoseComment() {
+        return rtDoseComment;
+    }
+
+    public String getSOPInstanceUID() {
+        return dob.getSOPInstanceUID();
+    }
+
+    public String getSOPClassUID() {
+        return dob.getSOPClassUID();
+    }
+
+    public String getRefSOPClassUID() {
+        return refSOPClassUID;
+    }
+
+    public String getRefStructSOPInst() {
+        return refStructSOPInst;
+    }
+
+    public String getRefDoseSOPInst() {
+        return refDoseSOPInst;
+    }
+
+    public String getPatientGender() {
+        return dob.getElementValue(Tags.PatientSex);
+    }
+
+    public boolean frameOfRefsOK() {
+        return listRefFrameOfRefFrameOfRefUID.size() <= 1 || oncentraCheck;
+    }
+
+    public boolean hasROIonlyOneRefFrameOfRefUID() {
+        return listRoiRefFrameOfRef.size() <= 1;
+    }
+
+    public String getROIRefFrameOfRef() {
+        if (listRoiRefFrameOfRef.size() == 1) {
+            return listRoiRefFrameOfRef.getFirst();
+        }
+        return null;
+    }
+
+    public LinkedList<String> getListRefRTPlanSequence() {
+        return listRefRTPlanSequence;
+    }
+
+    public LinkedList<String> getListRoiRefFrameOfRef() {
+        return listRoiRefFrameOfRef;
+    }
+
+    public LinkedList<String> getROINameList() {
+        return listROINames;
+    }
+
+    public LinkedList<String> getROINumberList() {
+        return listROINumber;
+    }
+
+    public LinkedList<String> getRefROINumberList() {
+        return listRefROINumber;
+    }
+
+    public LinkedList<String> getROIObservationLabelList() {
+        return listROIObservationLabel;
+    }
+
+    public LinkedList<String> getROIInterpretedTypeList() {
+        return listROIInterpretedType;
+    }
+
+    private String fixNull(String s) {
+        return (s == null) ? "" : s;
+    }
+
+    public File getFile() {
+        return file;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public String getPatientBirthday() {
+        return dob.getElementValue(Tags.PatientBirthDate);
+    }
+
+    public String getPatientID() {
+        return patientID;
+    }
+
+    public String getStudyInstanceUID() {
+        return studyInstanceUID;
+    }
+
+    public String getSeriesInstanceUID() {
+        return seriesInstanceUID;
+    }
+
+    public String getStudyDate() {
+        return studyDate;
+    }
+
+    public String getSeriesDate() {
+        return seriesDate;
+    }
+
+    public String getModality() {
+        return modality;
+    }
+
+    public String getStudyDescription() {
+        return studyDescription;
+    }
+
+    public String getFrameOfReference() {
+        return frameOfReference;
+    }
+
+    public String getDisplayedSeriesDescription() {
+        return displayedSeriesDescription;
+    }
+
+    public String getSeriesDescription() {
+        return seriesDescription;
+    }
+
+    private String fixDate(String s) {
+        if (s == null) s = "";
+        if (s.length() == 8) {
+            s = s.substring(0, 4) + "." + s.substring(4, 6) + "." + s.substring(6);
+        }
+        return s;
+    }
+
+    public int compareTo(FileName fn) {
+        if (fn == null) return 0;
+        int c;
+        if ((c = this.patientID.compareTo(fn.patientID)) != 0) return c;
+        if ((c = this.studyDate.compareTo(fn.studyDate)) != 0) return c;
+        if ((c = this.studyInstanceUID.compareTo(fn.studyInstanceUID)) != 0) return c;
+        if ((c = this.seriesNumberInt - fn.seriesNumberInt) != 0) return c;
+        if ((c = this.acquisitionNumberInt - fn.acquisitionNumberInt) != 0) return c;
+        if ((c = this.instanceNumberInt - fn.instanceNumberInt) != 0) return c;
+        return 0;
+    }
+
+    public boolean isDICOM() {
+        return isDICOM;
+    }
+
+    public boolean isImage() {
+        return isImage;
+    }
+
+    public boolean isSelected() {
+        return cb.isSelected();
+    }
+
+    public void setSelected(boolean selected) {
+        cb.setSelected(selected);
+    }
+
+    public StatusText getStatusText() {
+        return statusText;
+    }
+
+    public FileCheckBox getCheckBox() {
+        return cb;
+    }
+
+    public void display(DirectoryPanel dp) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new RowLayout(0, 0));
+        panel.setBackground(Color.white);
+        JLabel name = new JLabel("  " + file.getName());
+        name.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        name.setForeground(Color.BLACK);
+        panel.add(name);
+        panel.add(RowLayout.crlf());
+        String description = "";
+        panel.add(new JLabel(description));
+        panel.add(RowLayout.crlf());
+
+        panel.add(new JLabel("      " + fileSize.getText() + " Byte"));
+        panel.add(RowLayout.crlf());
+
+        dp.add(cb);
+        dp.add(panel);
+        dp.add(RowLayout.crlf());
+    }
 
 }

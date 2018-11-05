@@ -8,17 +8,14 @@
 package client;
 
 import java.awt.*;
-import java.io.*;
 import javax.swing.*;
 
-class FileSize extends JLabel {
+public class SeriesCheckBox extends JCheckBox {
 
-    public FileSize(File file) {
+    public SeriesCheckBox() {
         super();
-        setText(String.format("%,d", file.length()));
-        setFont(new Font("Monospaced", Font.PLAIN, 12));
-        setAlignmentX(1.0f);
-        setAlignmentY(0.0f);
+        setBorder(BorderFactory.createEmptyBorder(0, 30, 0, 0));
+        setSelected(false);
+        setBackground(Color.white);
     }
 }
-

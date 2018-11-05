@@ -8,17 +8,20 @@
 package client;
 
 import java.awt.*;
-import java.io.*;
 import javax.swing.*;
 
-class FileSize extends JLabel {
+class PatientName extends JButton {
 
-    public FileSize(File file) {
+    public PatientName(String patientName) {
         super();
-        setText(String.format("%,d", file.length()));
-        setFont(new Font("Monospaced", Font.PLAIN, 12));
-        setAlignmentX(1.0f);
-        setAlignmentY(0.0f);
+        setText(patientName);
+        setFont(new Font("Monospaced", Font.BOLD, 18));
+        setForeground(Color.blue);
+        setBorder(BorderFactory.createEmptyBorder());
+        setBorderPainted(false);
+        setMargin(new Insets(0, 0, 0, 0));
+        setContentAreaFilled(false);
+        setFocusPainted(false);
     }
-}
 
+}
