@@ -40,7 +40,7 @@ import org.w3c.dom.Document;
 @SuppressWarnings("ALL")
 public class CTPClient extends JFrame implements ActionListener, ComponentListener {
 
-    private static final String title = "CTP Client - DKTK - deactivated sanity checks";
+    private static final String title = "CTP Client - DKTK";
 
     private static final Color bgColor = new Color(0xc6d8f9);
     private static final Color disabledCellColor = Color.PINK;
@@ -461,12 +461,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
-                /*} else if ((requiredPatientsBirthDate.length() == 4
+                } else if ((requiredPatientsBirthDate.length() == 4
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthYear()))
                         || (requiredPatientsBirthDate.length() == 8
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthDate()))){
                     startButton.setEnabled(false);
-                    showSelectionInfo("birthdate");*/
+                    showSelectionInfo("birthdate");
                 } else if (!requiredGender.equals(studyList.getPatientsGender())
                         && !requiredGender.equals("") &&
                         !studyList.getPatientsGender().equals("")) {
@@ -493,12 +493,12 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                 } else if (studyList.wrongReferences) {
                     startButton.setEnabled(false);
                     showSelectionInfo("references");
-                /*} else if ((requiredPatientsBirthDate.length() == 4
+                } else if ((requiredPatientsBirthDate.length() == 4
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthYear()))
                         || (requiredPatientsBirthDate.length() == 8
                         && !requiredPatientsBirthDate.equals(studyList.getPatientBirthDate()))){
                     startButton.setEnabled(false);
-                    showSelectionInfo("birthdate");*/
+                    showSelectionInfo("birthdate");
                 }
                 sp.getVerticalScrollBar().setValue(0);
                 setWaitCursor(false);
@@ -527,30 +527,24 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                     }
                 }
                 if (numberOfSelectedStudies != 1) {
-                    final JFrame parent = this;
-                    Runnable enable = new Runnable() {
 
-                        public void run() {
-                            JOptionPane.showMessageDialog(parent,
-                                    "You have to select exactly one study in order to proceed.",
-                                    "Information", JOptionPane.WARNING_MESSAGE);
-                        }
-                    };
-                    SwingUtilities.invokeLater(enable);
+                    String msg = "You have to select exactly one study in order to proceed.";
+                    showWarning(msg);
 
                 } else if (numberOfSelectedRTSTRUCTS > 1) {
-                    final JFrame parent = this;
-                    Runnable enable = new Runnable() {
 
-                        public void run() {
-                            JOptionPane.showMessageDialog(parent,
-                                    "You can select at most one RTSTRUCT. Please choose the RTSTRUCT " +
-                                            "of the main study and deselect all the other ones",
-                                    "Information", JOptionPane.WARNING_MESSAGE);
-                        }
-                    };
-                    SwingUtilities.invokeLater(enable);
+                    String msg = "You can select at most one RTSTRUCT. Please choose the RTSTRUCT " +
+                            "of the main study and deselect all the other ones.";
+                    showWarning(msg);
+
+                } else if (!studyList.isNumberOfUniqueSOPInstanceUIDsEqual()) {
+
+                    String msg ="The number of unique\n" +
+                            "SOPInstanceUIDs detected from selected series needs to be\n" +
+                            "equal to the number of files of selected DICOM series.";
+                    showWarning(msg);
                 }
+
                 else {
 
                     startButton.setEnabled(false);
@@ -757,6 +751,19 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
                         JOptionPane.INFORMATION_MESSAGE);
                 WindowEvent wev = new WindowEvent(parent, WindowEvent.WINDOW_CLOSING);
                 Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(wev);
+            }
+        };
+        SwingUtilities.invokeLater(enable);
+    }
+
+    private void showWarning (String msg) {
+        final JFrame parent = this;
+        Runnable enable = new Runnable() {
+
+            public void run() {
+                JOptionPane.showMessageDialog(parent,
+                        msg,
+                        "Information", JOptionPane.WARNING_MESSAGE);
             }
         };
         SwingUtilities.invokeLater(enable);

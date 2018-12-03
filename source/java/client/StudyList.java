@@ -75,6 +75,34 @@ public class StudyList implements ActionListener {
         studyType = st;
     }
 
+    public boolean isNumberOfUniqueSOPInstanceUIDsEqual() {
+
+        List<String> uniqueSOPInstanceUIDs = new ArrayList<>();
+        int counter = 0;
+
+        for (String s : table.keySet()) {
+            Series[] series = table.get(s).getSeries();
+            for (Series series1 : series) {
+                if (series1.isSelected()) {
+                    for (FileName fileName : series1.getFileNames()) {
+                        if (fileName.isSelected()) {
+                            counter++;
+                            // all selected unique SOPInstanceUIDs
+                            if (!uniqueSOPInstanceUIDs.contains(fileName.getSOPInstanceUID())) {
+                                uniqueSOPInstanceUIDs.add(fileName.getSOPInstanceUID());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!(uniqueSOPInstanceUIDs.size() == counter)) {
+            return false;
+        }
+        return true;
+    }
+
     public String getPatientsGender() {
         return patientsGender;
     }
