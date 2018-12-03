@@ -1378,7 +1378,7 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
     public boolean getAcceptNonImageObjects() {
         //Require an explicit acceptance of non-image objects
-        String anio = config.getProperty("acceptNonImageObjects", "");
+        String anio = config.getProperty("acceptNonImageObjects", "yes");
         return anio.trim().equals("yes");
     }
 
