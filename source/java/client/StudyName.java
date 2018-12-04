@@ -14,7 +14,7 @@ import javax.swing.*;
 class StudyName extends JButton {
 
     private int numberOfSeries = 0;
-    private String classification = "";
+    private String classification = "OTH";
     private final FileName fn;
     private final LinkedList<String> modalities;
     private String studyDescription;
@@ -59,26 +59,34 @@ class StudyName extends JButton {
     }
 
     public void setClassification() {
+
         if (modalities.contains("CT")) {
-            classification = "CT";
+
+            if (modalities.size() == 1) classification = "CT";
+
             if (modalities.contains("PT")) {
-                classification = "PET-CT";
+
+                if (modalities.size() == 2) classification = "PET-CT";
+
             } else if (modalities.contains("RTSTRUCT")) {
                 if (modalities.contains("RTPLAN")
                         && modalities.contains("RTDOSE")) {
-                    classification = "TreatmentPlan";
+
+                    if (modalities.size() == 4) classification = "TreatmentPlan";
+
                 } else {
-                    classification = "Contouring";
+                    if (modalities.size() == 2) classification = "Contouring";
                 }
             }
         } else if (modalities.contains("MR")) {
-            classification = "MRI";
+
+            if (modalities.size() == 1) classification = "MRI";
+
             if (modalities.contains("PT")) {
-                classification = "PET-MRI";
+
+                if (modalities.size() == 2) classification = "PET-MRI";
+
             }
-        } else {
-            classification = "OTH";
-            modalities.remove();
         }
         updateName();
     }
