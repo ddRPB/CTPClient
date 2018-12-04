@@ -539,12 +539,21 @@ public class CTPClient extends JFrame implements ActionListener, ComponentListen
 
                 } else if (!studyList.isNumberOfUniqueSOPInstanceUIDsEqual()) {
 
-                    String msg ="The number of unique\n" +
-                            "SOPInstanceUIDs detected from selected series needs to be\n" +
-                            "equal to the number of files of selected DICOM series.";
+                    String msg ="The number of unique SOPInstanceUIDs detected from selected \n" +
+                            "series needs to be equal to the number of files of selected DICOM series.";
+                    showWarning(msg);
+                } else if (!studyList.isSelectedConstellationValid()) {
+
+                    String msg ="The selected constellation does not comply with the required type. \n" +
+                            "Valid types are \n" +
+                            "CT --- [CT] \n" +
+                            "PET-CT --- [CT] + [PT] \n" +
+                            "Treatmentplan --- [CT] + [RTSTRUCT] + [RTPLAN] + [RTDOSE] \n" +
+                            "Contouring --- [CT] + [RTSTRUCT] \n" +
+                            "MRI --- [MR] \n" +
+                            "PET-MRI --- [MR] + [PT]";
                     showWarning(msg);
                 }
-
                 else {
 
                     startButton.setEnabled(false);

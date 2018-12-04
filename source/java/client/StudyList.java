@@ -81,10 +81,10 @@ public class StudyList implements ActionListener {
         int counter = 0;
 
         for (String s : table.keySet()) {
-            Series[] series = table.get(s).getSeries();
-            for (Series series1 : series) {
-                if (series1.isSelected()) {
-                    for (FileName fileName : series1.getFileNames()) {
+            Series[] allSeries = table.get(s).getSeries();
+            for (Series series : allSeries) {
+                if (series.isSelected()) {
+                    for (FileName fileName : series.getFileNames()) {
                         if (fileName.isSelected()) {
                             counter++;
                             // all selected unique SOPInstanceUIDs
@@ -101,6 +101,51 @@ public class StudyList implements ActionListener {
             return false;
         }
         return true;
+    }
+
+    public boolean isSelectedConstellationValid() {
+
+        List<String> selectedModalities = new ArrayList<>();
+
+        for (String s : table.keySet()) {
+            Series[] allSeries = table.get(s).getSeries();
+            for (Series series : allSeries) {
+                if (series.isSelected()) {
+                    selectedModalities.add(series.getModality());
+                }
+            }
+        }
+
+        if (selectedModalities.contains("CT")) {
+
+            if (selectedModalities.size() == 1) return true; // "CT"
+
+            if (selectedModalities.contains("PT")) {
+                //"PET-CT"
+                if (selectedModalities.size() == 2) return true;
+
+            } else if (selectedModalities.contains("RTSTRUCT")) {
+
+                if (selectedModalities.contains("RTPLAN")
+                        && selectedModalities.contains("RTDOSE")) {
+                    //"TreatmentPlan"
+                    if (selectedModalities.size() == 4) return true;
+                } else {
+                    //"Contouring"
+                    if (selectedModalities.size() == 2) return true;
+                }
+            }
+        } else if (selectedModalities.contains("MR")) {
+            //"MRI"
+            if (selectedModalities.size() == 1) return true;
+
+            if (selectedModalities.contains("PT")) {
+                //"PET-MRI"
+                if (selectedModalities.size() == 2) return true;
+            }
+        }
+
+        return false;
     }
 
     public String getPatientsGender() {
