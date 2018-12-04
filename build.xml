@@ -14,9 +14,9 @@
 	<property name="zip" value="${basedir}/zip"/>
 
 	<property name="signed" value="${basedir}/signed"/>
-	<property name="keystore" value="\\g40labsrv\edv\Wissenschaftsprojekte\RadPlanBio\jar-signing\ddrpb.jks"/>
-	<property name="password" value="RadPlanBio_2013"/>
-	<property name="alias" value="ddrpb"/>
+	<property name="keystore" value="<\\path\to\keystore.jks"/>
+	<property name="password" value="passwd"/>
+	<property name="alias" value="alias"/>
 
 	<path id="classpath">
 		<pathelement location="${libraries}/util.jar"/>
